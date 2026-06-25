@@ -1,4 +1,4 @@
-package com.transaction.api.ms_transaction_api;
+package com.transaction.api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

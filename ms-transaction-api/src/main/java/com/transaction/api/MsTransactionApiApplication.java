@@ -1,4 +1,4 @@
-package com.transaction.api.ms_transaction_api;
+package com.transaction.api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
