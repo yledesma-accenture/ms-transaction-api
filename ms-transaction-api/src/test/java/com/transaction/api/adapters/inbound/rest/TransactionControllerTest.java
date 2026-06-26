@@ -37,4 +37,29 @@ class TransactionControllerTest {
                         .param("txDateFrom", "2024/01/01"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldReturnEmptyTransactionPageWhenListTransaction() throws Exception {
+        mockMvc.perform(get("/api/v1/transactions")
+                        .param("type", "DEBIT")
+                        .param("status", "PENDING")
+                        .param("currency", "USD")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0))
+                .andExpect(jsonPath("$.last").value(true));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenStatusIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/v1/transactions")
+                        .param("status", "INVALID_STATUS"))
+                .andExpect(status().isBadRequest());
+    }
 }
