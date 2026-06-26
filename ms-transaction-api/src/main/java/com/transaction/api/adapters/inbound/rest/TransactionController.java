@@ -2,6 +2,7 @@ package com.transaction.api.adapters.inbound.rest;
 
 import com.transaction.api.domain.model.TransactionPage;
 import com.transaction.api.domain.model.TransactionStatus;
+import com.transaction.api.domain.model.TransactionSummary;
 import com.transaction.api.domain.model.TransactionType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -48,5 +49,16 @@ public class TransactionController {
             @RequestParam(defaultValue = "transactionAt,desc") String sort) {
         log.info("Listing transactions with page: {}, size: {}, sort: {}", page, size, sort);
         return ResponseEntity.ok(new TransactionPage(List.of(), page, size, 0, 0, true));
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<TransactionSummary> listTransactions(
+            @RequestParam(required=false) LocalDate txDateFrom,
+            @RequestParam(required=false) LocalDate txDateTo,
+            @RequestParam(required=false) LocalDate ingestionDateFrom,
+            @RequestParam(required=false) LocalDate ingestionDateTo,
+            @RequestParam(defaultValue = "type") String groupBy) {
+        log.info("Getting transaction summary");
+        return ResponseEntity.ok(new TransactionSummary(txDateFrom, txDateTo, ingestionDateFrom, ingestionDateTo, 0, BigDecimal.ZERO, groupBy, List.of()));
     }
 }

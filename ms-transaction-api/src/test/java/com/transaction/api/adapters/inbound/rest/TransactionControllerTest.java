@@ -62,4 +62,23 @@ class TransactionControllerTest {
                         .param("status", "INVALID_STATUS"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldReturn200ForGetTransactionsSummaryEndpoint() throws Exception {
+        mockMvc.perform(get("/api/v1/transactions/summary")
+                        .param("groupBy", "type"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(0))
+                .andExpect(jsonPath("$.totalAmount").value(0))
+                .andExpect(jsonPath("$.groupedBy").value("type"))
+                .andExpect(jsonPath("$.groups").isArray())
+                .andExpect(jsonPath("$.groups").isEmpty());
+    }
+
+    @Test
+    void shouldReturn400ForGetTransactionsSummaryEndpointWhenTxDateFromIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/v1/transactions/summary")
+                        .param("txDateFrom", "2024/01/01"))
+                .andExpect(status().isBadRequest());
+    }
 }
