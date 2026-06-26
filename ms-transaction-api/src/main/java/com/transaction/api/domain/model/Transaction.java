@@ -1,11 +1,9 @@
 package com.transaction.api.domain.model;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 public record Transaction(
-
         UUID id,
         String externalRef,
         OffsetDateTime transactionAt,
@@ -20,14 +18,4 @@ public record Transaction(
         UUID fileId,
         String createdBy,
         boolean flagged,
-        String flagReason,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt,
-        List<ValidationWarning> validationWarnings
-
-) {
-
-
-
-
-}
+        String flagReason) {}
