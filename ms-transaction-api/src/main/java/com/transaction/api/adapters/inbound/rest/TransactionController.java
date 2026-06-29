@@ -1,11 +1,10 @@
 package com.transaction.api.adapters.inbound.rest;
 
-import com.transaction.api.domain.model.TransactionPage;
-import com.transaction.api.domain.model.TransactionStatus;
-import com.transaction.api.domain.model.TransactionSummary;
-import com.transaction.api.domain.model.TransactionType;
+import com.transaction.api.domain.model.*;
+import com.transaction.api.domain.port.application.ITransactionPort;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,10 +18,17 @@ import java.util.UUID;
 @RequestMapping("/api/v1/transactions")
 public class TransactionController {
 
+    private final ITransactionPort transactionPort;
+
+    public TransactionController(ITransactionPort transactionPort) {
+        this.transactionPort = transactionPort;
+    }
+
     @GetMapping("/{transactionId}")
-    public ResponseEntity<?> transactionId(@PathVariable String transactionId) throws BadRequestException {
+    public ResponseEntity<TransactionDetail> transactionId(@PathVariable String transactionId) throws BadRequestException {
         log.info("/api/v1/transactions/transactionId {}", transactionId);
-        return ResponseEntity.ok("OK");
+        TransactionDetail transactionDetail = transactionPort.transactionId(transactionId);
+        return ResponseEntity.ok(transactionDetail);
     }
 
     @GetMapping("/search/cbu/{cbu}")
