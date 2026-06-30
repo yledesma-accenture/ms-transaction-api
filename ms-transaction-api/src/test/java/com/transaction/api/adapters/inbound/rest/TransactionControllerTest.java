@@ -1,12 +1,24 @@
 package com.transaction.api.adapters.inbound.rest;
 
-
+import com.transaction.api.domain.model.Transaction;
+import com.transaction.api.domain.model.TransactionDetail;
+import com.transaction.api.domain.model.TransactionPage;
+import com.transaction.api.domain.model.TransactionType;
+import com.transaction.api.domain.port.application.ITransactionPort;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TransactionController.class)
@@ -16,11 +28,44 @@ public class TransactionControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockitoBean
+    private ITransactionPort transactionPort;
+
+    private TransactionDetail  getTransactionDetail(UUID transactionId) {
+        return  new TransactionDetail(   new Transaction(
+                transactionId,
+                "TNX-2024-000001",
+                OffsetDateTime.parse("2024-03-15T09:00:00Z"),
+                OffsetDateTime.parse("2024-03-15T09:05:22Z"),
+                TransactionType.DEBIT,
+                "COMPLETED",
+                250,
+                "USD",
+                null,
+                null,
+                "ATM withdrawal",
+                UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+                "operator-42",
+                true,
+                "Amount exceeds account 30-day average by 720%"),
+                null,
+                null,
+                null) ;
+    }
+
     @Test
     void shouldReturnTransaction() throws Exception {
-        mockMvc.perform(get("/api/v1/transactions/2323"))
+        UUID transactionId = UUID.fromString(
+                "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        );
+        TransactionDetail transactionDetail = getTransactionDetail(transactionId);
+
+        Mockito.when(transactionPort.transactionId(transactionId.toString())).thenReturn(transactionDetail);;
+
+        mockMvc.perform(get("/api/v1/transactions/3fa85f64-5717-4562-b3fc-2c963f66afa6"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andExpect(jsonPath("$.transaction.id").value(transactionId.toString()));
+
     }
 
     @Test
@@ -31,13 +76,49 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturnCbu() throws Exception {
+        UUID transactionId = UUID.fromString(
+                "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        );
+        TransactionDetail transactionDetail = getTransactionDetail(transactionId);
+        TransactionPage transactionPage = new TransactionPage(List.of(transactionDetail.transaction()),1,10,100,10,false);
+
+        Mockito.when(transactionPort.transactionCbu(
+                        anyString(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        anyInt(),
+                        anyInt(),
+                        anyString()))
+                .thenReturn(transactionPage);
+
         mockMvc.perform(get("/api/v1/transactions/search/cbu/0170099220000067797370"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andDo(print())
+                .andExpect(jsonPath("$.content[0].id").value(transactionId.toString()));
     }
 
     @Test
     void shouldReturnCbuWithAllParameters() throws Exception {
+        UUID transactionId = UUID.fromString(
+                "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        );
+        TransactionDetail transactionDetail = getTransactionDetail(transactionId);
+        TransactionPage transactionPage = new TransactionPage(List.of(transactionDetail.transaction()),1,10,100,10,false);
+
+        Mockito.when(transactionPort.transactionCbu(
+                        anyString(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        anyInt(),
+                        anyInt(),
+                        anyString()))
+                .thenReturn(transactionPage);
+
+
+
         mockMvc.perform(get("/api/v1/transactions/search/cbu/0170099220000067797370")
                         .param("txDateFrom", "2026-01-01")
                         .param("txDateTo", "2026-06-30")
@@ -47,7 +128,7 @@ public class TransactionControllerTest {
                         .param("size", "20")
                         .param("sort", "transactionAt,desc"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andExpect(jsonPath("$.content[0].id").value(transactionId.toString()));
     }
 
     @Test
@@ -66,13 +147,47 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturnCuit() throws Exception {
+        UUID transactionId = UUID.fromString(
+                "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        );
+        TransactionDetail transactionDetail = getTransactionDetail(transactionId);
+        TransactionPage transactionPage = new TransactionPage(List.of(transactionDetail.transaction()),1,10,100,10,false);
+
+        Mockito.when(transactionPort.transactionCuit(
+                        anyString(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        anyInt(),
+                        anyInt(),
+                        anyString()))
+                .thenReturn(transactionPage);
         mockMvc.perform(get("/api/v1/transactions/search/cuit/20329851657"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andExpect(jsonPath("$.content[0].id").value(transactionId.toString()));
+
     }
 
     @Test
     void shouldReturnCuitWithAllParameters() throws Exception {
+        UUID transactionId = UUID.fromString(
+                "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        );
+        TransactionDetail transactionDetail = getTransactionDetail(transactionId);
+        TransactionPage transactionPage = new TransactionPage(List.of(transactionDetail.transaction()),1,10,100,10,false);
+
+        Mockito.when(transactionPort.transactionCuit(
+                        anyString(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        anyInt(),
+                        anyInt(),
+                        anyString()))
+                .thenReturn(transactionPage);
+
         mockMvc.perform(get("/api/v1/transactions/search/cuit/20329851657")
                         .param("txDateFrom", "2026-01-01")
                         .param("txDateTo", "2026-06-30")
@@ -82,7 +197,7 @@ public class TransactionControllerTest {
                         .param("size", "20")
                         .param("sort", "transactionAt,desc"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andExpect(jsonPath("$.content[0].id").value(transactionId.toString()));
     }
 
     @Test

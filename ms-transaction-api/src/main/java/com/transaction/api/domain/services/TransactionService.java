@@ -2,16 +2,20 @@ package com.transaction.api.domain.services;
 
 import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.application.ITransactionPort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class TransactionService implements ITransactionPort {
 
-    private  TransactionDetail createTransactionDetailMock() {
+    public   static TransactionDetail createTransactionDetailMock() {
         // Crear los datos de benefactor
         Party benefactor = new Party(
                 UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
@@ -78,5 +82,32 @@ public class TransactionService implements ITransactionPort {
     @Override
     public TransactionDetail transactionId(String transactionId) {
         return createTransactionDetailMock();
+    }
+
+    @Override
+    public TransactionPage transactionCbu(String cbu, LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom,
+                                          LocalDate ingestionDateTo, int page, int size, String sort) {
+        List<Transaction> transaction = new ArrayList<>();
+        transaction.add(createTransactionDetailMock().transaction());
+        transaction.add(createTransactionDetailMock().transaction());
+        //List<Transaction> transaction = repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada"));
+        if (transaction == null || transaction.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada");
+        }
+        int totalPages = (int) Math.ceil((double) transaction.size() / size); //rehacer select count(*) transaction
+        return new  TransactionPage(transaction , page, size, transaction.size(), totalPages, false);
+    }
+
+    @Override
+    public TransactionPage transactionCuit(String cuit, LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom, LocalDate ingestionDateTo, int page, int size, String sort) {
+        List<Transaction> transaction = new ArrayList<>();
+        transaction.add(createTransactionDetailMock().transaction());
+        transaction.add(createTransactionDetailMock().transaction());
+        //List<Transaction> transaction = repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada"));
+        if (transaction == null || transaction.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada");
+        }
+        int totalPages = (int) Math.ceil((double) transaction.size() / size); //rehacer select count(*) transaction
+        return new  TransactionPage(transaction , page, size, transaction.size(), totalPages, false);
     }
 }
