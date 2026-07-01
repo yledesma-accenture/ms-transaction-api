@@ -1,5 +1,6 @@
 package com.transaction.api.domain.services;
 
+import com.transaction.api.adapters.inbound.rest.TransactionQueryMapper;
 import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.adapters.model.FilterCommon;

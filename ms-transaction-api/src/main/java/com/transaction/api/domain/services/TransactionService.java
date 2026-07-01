@@ -106,13 +106,8 @@ public class TransactionService implements ITransactionPort {
         return new TransactionPage(content, page, size, totalElements, totalPages, last);
     }
 
-    private TransactionSummary createDummyTransactionSummary(
-            LocalDate txDateFrom,
-            LocalDate txDateTo,
-            LocalDate ingestionDateFrom,
-            LocalDate ingestionDateTo,
-            String groupBy) {
-
+    private TransactionSummary createDummyTransactionSummary(LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom,
+                                                             LocalDate ingestionDateTo, String groupBy) {
         TransactionSummaryGroup group1 = new TransactionSummaryGroup(
                 "DEBIT",
                 5,

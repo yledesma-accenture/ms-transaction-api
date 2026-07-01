@@ -1,5 +1,8 @@
 package com.transaction.api.adapters.inbound.rest;
 
+import com.transaction.api.adapters.inbound.dto.ListTransactionRequest;
+import com.transaction.api.adapters.inbound.dto.SummaryRequest;
+import com.transaction.api.adapters.inbound.dto.TransactionFilterRequest;
 import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.adapters.model.SummaryQuery;
@@ -21,9 +24,11 @@ import java.util.UUID;
 public class TransactionController {
 
     private final ITransactionPort transactionPort;
+    private final TransactionQueryMapper mapper;
 
-    public TransactionController(ITransactionPort transactionPort) {
+    public TransactionController(ITransactionPort transactionPort, TransactionQueryMapper mapper) {
         this.transactionPort = transactionPort;
+        this.mapper = mapper;
     }
 
     @GetMapping("/{transactionId}")
@@ -63,30 +68,10 @@ public class TransactionController {
 
     @GetMapping("/search/user/{userId}")
     public ResponseEntity<TransactionPage>searchTransactionByUser(@PathVariable String userId,
-                                                                  @RequestParam(required=false) LocalDate txDateFrom,
-                                                                  @RequestParam(required=false) LocalDate txDateTo,
-                                                                  @RequestParam(required=false) LocalDate ingestionDateFrom,
-                                                                  @RequestParam(required=false) LocalDate ingestionDateTo,
-                                                                  @RequestParam(defaultValue = "0") int page,
-                                                                  @RequestParam(defaultValue = "20") int size,
-                                                                  @RequestParam(defaultValue = "transactionAt,desc") String sort)  {
+                                                                  @ModelAttribute TransactionFilterRequest request)  {
         log.info("Searching transactions for userId: {}", userId);
 
-
-        FilterCommon filterCommon = FilterCommon.builder()
-                .txDateFrom(txDateFrom)
-                .txDateTo(txDateTo)
-                .ingestionDateFrom(ingestionDateFrom)
-                .ingestionDateTo(ingestionDateTo)
-                .page(page)
-                .size(size)
-                .sort(sort)
-                .build();
-
-        SearchTransactionByUserQuery searchTransactionByUserQuery = SearchTransactionByUserQuery.builder()
-                .userId(Long.valueOf(userId))
-                .filterCommon(filterCommon)
-                .build();
+        SearchTransactionByUserQuery searchTransactionByUserQuery = mapper.toSearchTransactionByUserQuery(userId, request);
 
         TransactionPage response = transactionPort.searchTransactionByUser(searchTransactionByUserQuery);
 
@@ -94,65 +79,21 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<TransactionPage> listTransactions(
-            @RequestParam(required=false) LocalDate txDateFrom,
-            @RequestParam(required=false) LocalDate txDateTo,
-            @RequestParam(required=false) LocalDate ingestionDateFrom,
-            @RequestParam(required=false) LocalDate ingestionDateTo,
-            @RequestParam(required = false) TransactionType type,
-            @RequestParam(required = false) TransactionStatus status,
-            @RequestParam(required = false) String currency,
-            @RequestParam(required = false) BigDecimal amountMin,
-            @RequestParam(required = false) BigDecimal amountMax,
-            @RequestParam(required = false) UUID fileId,
-            @RequestParam(required = false) Boolean flagged,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "transactionAt,desc") String sort) {
-        log.info("Listing transactions with page: {}, size: {}, sort: {}", page, size, sort);
+    public ResponseEntity<TransactionPage> listTransactions(@ModelAttribute ListTransactionRequest request) {
+        log.info("Listing transactions with page: {}, size: {}, sort: {}", request.page(), request.size(), request.sort());
 
-        FilterCommon filterCommon = FilterCommon.builder()
-                .txDateFrom(txDateFrom)
-                .txDateTo(txDateTo)
-                .ingestionDateFrom(ingestionDateFrom)
-                .ingestionDateTo(ingestionDateTo)
-                .page(page)
-                .size(size)
-                .sort(sort)
-                .build();
+        ListTransactionsQuery listTransactionQuery = mapper.toListTransactionQuery(request);
 
-        ListTransactionsQuery listTransactionsQuery = ListTransactionsQuery.builder()
-                .filterCommon(filterCommon)
-                .transactionType(type)
-                .transactionStatus(status)
-                .currency(currency)
-                .amountMin(amountMin)
-                .amountMax(amountMax)
-                .fileId(fileId)
-                .flagged(flagged)
-                .build();
-
-        TransactionPage response = transactionPort.listTransaction(listTransactionsQuery);
+        TransactionPage response = transactionPort.listTransaction(listTransactionQuery);
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<TransactionSummary> getSummary(
-            @RequestParam(required=false) LocalDate txDateFrom,
-            @RequestParam(required=false) LocalDate txDateTo,
-            @RequestParam(required=false) LocalDate ingestionDateFrom,
-            @RequestParam(required=false) LocalDate ingestionDateTo,
-            @RequestParam(defaultValue = "type") String groupBy) {
+    public ResponseEntity<TransactionSummary> getSummary(@ModelAttribute SummaryRequest request) {
         log.info("Getting transaction summary");
 
-        SummaryQuery summaryQuery = SummaryQuery.builder()
-                .txDateFrom(txDateFrom)
-                .txDateTo(txDateTo)
-                .ingestionDateFrom(ingestionDateFrom)
-                .ingestionDateTo(ingestionDateTo)
-                .groupBy(groupBy)
-                .build();
+        SummaryQuery summaryQuery = mapper.toSummaryQuery(request);
 
         TransactionSummary response = transactionPort.getSummary(summaryQuery);
 

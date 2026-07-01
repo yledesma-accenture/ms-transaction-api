@@ -5,13 +5,13 @@ import com.transaction.api.adapters.model.SummaryQuery;
 import com.transaction.api.domain.model.TransactionPage;
 import com.transaction.api.domain.model.TransactionSummary;
 import com.transaction.api.domain.port.application.ITransactionPort;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,17 +31,15 @@ public class TransactionControllerTest {
     @MockitoBean
     private ITransactionPort transactionPort;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.initMocks(this);
-    }
+    @MockitoBean
+    private TransactionQueryMapper  mapper;
 
-/*    @Test
+    @Test
     void shouldReturnTransaction() throws Exception {
         mockMvc.perform(get("/api/v1/transactions/2323"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("OK"));
-    }*/
+    }
 
     @Test
     void shouldFailWhenTransactionIdIsBlank() throws Exception {
@@ -169,6 +167,11 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenStatusIsInvalid() throws Exception {
+        when(mapper.toListTransactionQuery(any()))
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "transactionStatus inválido: INVALID_STATUS"));
+
         mockMvc.perform(get("/api/v1/transactions")
                         .param("status", "INVALID_STATUS"))
                 .andExpect(status().isBadRequest());
@@ -178,6 +181,10 @@ public class TransactionControllerTest {
     void shouldReturn200ForGetTransactionsSummaryEndpoint() throws Exception {
         TransactionSummary summary = new TransactionSummary(null, null, null, null,
                 0, BigDecimal.ZERO, "type", List.of());
+
+        SummaryQuery summaryQuery = new SummaryQuery(null, null, null, null, "type");
+
+        when(mapper.toSummaryQuery(any())).thenReturn(summaryQuery);
 
         when(transactionPort.getSummary(any(SummaryQuery.class))).thenReturn(summary);
 
