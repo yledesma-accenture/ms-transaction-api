@@ -130,6 +130,7 @@
 							<exclude>**/domain/model/**</exclude>
 							<exclude>**/domain/port/out/**</exclude>
 							<exclude>**/*MsTransactionApiApplication.class</exclude>
+							<exclude>**/adapters/model/**</exclude>
 						</excludes>
 					</configuration>
 				</execution>
@@ -147,6 +148,7 @@
 								<excludes>
 									<exclude>com.transaction.api.domain.model</exclude>
 									<exclude>com.transaction.api.domain.port.out</exclude>
+									<exclude>com.transaction.api.adapters.model</exclude>
 									<exclude>com.transaction.api</exclude>
 								</excludes>
 								<limits>

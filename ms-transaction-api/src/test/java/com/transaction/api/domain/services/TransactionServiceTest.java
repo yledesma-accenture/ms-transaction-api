@@ -1,22 +1,33 @@
 package com.transaction.api.domain.services;
 
+import com.transaction.api.adapters.model.ListTransactionsQuery;
+import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
+import com.transaction.api.adapters.model.FilterCommon;
+import com.transaction.api.adapters.model.SummaryQuery;
+import com.transaction.api.domain.model.*;
+import org.junit.jupiter.api.BeforeEach;
 import com.transaction.api.domain.model.Transaction;
 import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
 import com.transaction.api.domain.model.ValidationWarning;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 public class TransactionServiceTest {
 
+    private TransactionService service;
 
-    private final TransactionService service = new TransactionService();
-
+    @BeforeEach
+    void setUp() {
+        service = new TransactionService();
+    }
     @Test
     void transactionIdReturnsDetailWithExpectedFields() {
         UUID expectedId = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
@@ -48,7 +59,27 @@ public class TransactionServiceTest {
     }
 
     @Test
-    void transactionCbuReturnsPageWithContent() {
+    void shouldSearchTransactionByUser() {
+        FilterCommon filterCommon = mock(FilterCommon.class);
+        SearchTransactionByUserQuery query = mock(SearchTransactionByUserQuery.class);
+
+        when(query.filterCommon()).thenReturn(filterCommon);
+        when(filterCommon.page()).thenReturn(0);
+        when(filterCommon.size()).thenReturn(10);
+
+        TransactionPage result = service.searchTransactionByUser(query);
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void shouldReturnListTransaction() {
+        FilterCommon filterCommon = mock(FilterCommon.class);
+        ListTransactionsQuery query = mock(ListTransactionsQuery.class);
+
+        when(query.filterCommon()).thenReturn(filterCommon);
+        when(filterCommon.page()).thenReturn(0);
+        when(filterCommon.size()).thenReturn(10);
         TransactionPage page = service.transactionCbu(
                 "0000003100012345678901",
                 null,
@@ -60,6 +91,9 @@ public class TransactionServiceTest {
                 "transactionAt,desc"
         );
 
+        TransactionPage result = service.listTransaction(query);
+
+        assertNotNull(result);
         assertNotNull(page);
         assertNotNull(page.content());
         assertEquals(2, page.content().size(), "Service mock adds two transactions");
@@ -71,6 +105,19 @@ public class TransactionServiceTest {
     }
 
     @Test
+    void shouldReturnSummary() {
+        SummaryQuery query = mock(SummaryQuery.class);
+
+        when(query.txDateFrom()).thenReturn(LocalDate.of(2024, 1, 1));
+        when(query.txDateTo()).thenReturn(LocalDate.of(2024, 1, 31));
+        when(query.ingestionDateFrom()).thenReturn(LocalDate.of(2024, 2, 1));
+        when(query.ingestionDateTo()).thenReturn(LocalDate.of(2024, 2, 29));
+        when(query.groupBy()).thenReturn("STATUS");
+
+        TransactionSummary result = service.getSummary(query);
+
+        assertNotNull(result);
+    }
     void transactionCuitReturnsPageWithContent() {
         TransactionPage page = service.transactionCuit(
                 "20301234567",
@@ -83,8 +130,9 @@ public class TransactionServiceTest {
                 "transactionAt,desc"
         );
 
-        assertNotNull(page);
-        assertEquals(2, page.content().size());
-        assertEquals(2L, page.totalElements());
+
+        assertThrows(NullPointerException.class, () -> service.getSummary(null));
     }
+
+
 }

@@ -8,7 +8,7 @@ public record Transaction(
         String externalRef,
         OffsetDateTime transactionAt,
         OffsetDateTime ingestedAt,
-        TransactionType type,
+        String type,
         String status,
         int amount,
         String currency,

@@ -1,5 +1,11 @@
 package com.transaction.api.adapters.inbound.rest;
 
+import com.transaction.api.adapters.inbound.dto.ListTransactionRequest;
+import com.transaction.api.adapters.inbound.dto.SummaryRequest;
+import com.transaction.api.adapters.inbound.dto.TransactionFilterRequest;
+import com.transaction.api.adapters.model.ListTransactionsQuery;
+import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
+import com.transaction.api.adapters.model.SummaryQuery;
 import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.application.ITransactionPort;
 import lombok.extern.slf4j.Slf4j;
@@ -7,10 +13,9 @@ import org.apache.coyote.BadRequestException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
+
 import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+
 
 @Slf4j
 @RestController
@@ -18,9 +23,11 @@ import java.util.UUID;
 public class TransactionController {
 
     private final ITransactionPort transactionPort;
+    private final TransactionQueryMapper mapper;
 
-    public TransactionController(ITransactionPort transactionPort) {
+    public TransactionController(ITransactionPort transactionPort, TransactionQueryMapper mapper) {
         this.transactionPort = transactionPort;
+        this.mapper = mapper;
     }
 
     @GetMapping("/{transactionId}")
@@ -62,48 +69,35 @@ public class TransactionController {
 
     @GetMapping("/search/user/{userId}")
     public ResponseEntity<TransactionPage>searchTransactionByUser(@PathVariable String userId,
-                                                                  @RequestParam(required=false) LocalDate txDateFrom,
-                                                                  @RequestParam(required=false) LocalDate txDateTo,
-                                                                  @RequestParam(required=false) LocalDate ingestionDateFrom,
-                                                                  @RequestParam(required=false) LocalDate ingestionDateTo,
-                                                                  @RequestParam(defaultValue = "0") int page,
-                                                                  @RequestParam(defaultValue = "20") int size,
-                                                                  @RequestParam(defaultValue = "transactionAt,desc") String sort)  {
+                                                                  @ModelAttribute TransactionFilterRequest request)  {
         log.info("Searching transactions for userId: {}", userId);
-        return ResponseEntity.ok(new TransactionPage(List.of(), page, size, 0, 0, true));
+
+        SearchTransactionByUserQuery searchTransactionByUserQuery = mapper.toSearchTransactionByUserQuery(userId, request);
+
+        TransactionPage response = transactionPort.searchTransactionByUser(searchTransactionByUserQuery);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
-    public ResponseEntity<TransactionPage> listTransactions(
-            @RequestParam(required=false) LocalDate txDateFrom,
-            @RequestParam(required=false) LocalDate txDateTo,
-            @RequestParam(required=false) LocalDate ingestionDateFrom,
-            @RequestParam(required=false) LocalDate ingestionDateTo,
-            @RequestParam(required = false) TransactionType type,
-            @RequestParam(required = false) TransactionStatus status,
-            @RequestParam(required = false) String currency,
-            @RequestParam(required = false) BigDecimal amountMin,
-            @RequestParam(required = false) BigDecimal amountMax,
-            @RequestParam(required = false) UUID fileId,
-            @RequestParam(required = false) Boolean flagged,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "transactionAt,desc") String sort) {
-        log.info("Listing transactions with page: {}, size: {}, sort: {}", page, size, sort);
-        return ResponseEntity.ok(new TransactionPage(List.of(), page, size, 0, 0, true));
+    public ResponseEntity<TransactionPage> listTransactions(@ModelAttribute ListTransactionRequest request) {
+        log.info("Listing transactions with page: {}, size: {}, sort: {}", request.page(), request.size(), request.sort());
+
+        ListTransactionsQuery listTransactionQuery = mapper.toListTransactionQuery(request);
+
+        TransactionPage response = transactionPort.listTransaction(listTransactionQuery);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<TransactionSummary> listTransactions(
-            @RequestParam(required=false) LocalDate txDateFrom,
-            @RequestParam(required=false) LocalDate txDateTo,
-            @RequestParam(required=false) LocalDate ingestionDateFrom,
-            @RequestParam(required=false) LocalDate ingestionDateTo,
-            @RequestParam(defaultValue = "type") String groupBy) {
+    public ResponseEntity<TransactionSummary> getSummary(@ModelAttribute SummaryRequest request) {
         log.info("Getting transaction summary");
-        return ResponseEntity.ok(new TransactionSummary(txDateFrom, txDateTo, ingestionDateFrom, ingestionDateTo, 0, BigDecimal.ZERO, groupBy, List.of()));
+
+        SummaryQuery summaryQuery = mapper.toSummaryQuery(request);
+
+        TransactionSummary response = transactionPort.getSummary(summaryQuery);
+
+        return ResponseEntity.ok(response);
     }
-
-
-
 }

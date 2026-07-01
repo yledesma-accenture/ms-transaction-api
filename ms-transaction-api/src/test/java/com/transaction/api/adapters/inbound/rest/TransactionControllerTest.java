@@ -3,20 +3,29 @@ package com.transaction.api.adapters.inbound.rest;
 import com.transaction.api.domain.model.Transaction;
 import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
-import com.transaction.api.domain.model.TransactionType;
 import com.transaction.api.domain.port.application.ITransactionPort;
+
+import com.transaction.api.adapters.model.SummaryQuery;
+import com.transaction.api.domain.model.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
+import java.math.BigDecimal;
+
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,13 +40,17 @@ public class TransactionControllerTest {
     @MockitoBean
     private ITransactionPort transactionPort;
 
+    @MockitoBean
+    private TransactionQueryMapper  mapper;
+
+
     private TransactionDetail  getTransactionDetail(UUID transactionId) {
         return  new TransactionDetail(   new Transaction(
                 transactionId,
                 "TNX-2024-000001",
                 OffsetDateTime.parse("2024-03-15T09:00:00Z"),
                 OffsetDateTime.parse("2024-03-15T09:05:22Z"),
-                TransactionType.DEBIT,
+                "DEBIT",
                 "COMPLETED",
                 250,
                 "USD",
@@ -215,6 +228,10 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturnEmptyTransactionPageWhenSearchByUser() throws Exception {
+        TransactionPage page = new TransactionPage(List.of(), 0, 20, 0, 0, true);
+
+        when(transactionPort.searchTransactionByUser(any())).thenReturn(page);
+
         mockMvc.perform(get("/api/v1/transactions/search/user/123")
                         .param("page", "0")
                         .param("size", "20")
@@ -238,6 +255,10 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturnEmptyTransactionPageWhenListTransaction() throws Exception {
+        TransactionPage page = new TransactionPage(List.of(), 0, 20, 0, 0, true);
+
+        when(transactionPort.listTransaction(any())).thenReturn(page);
+
         mockMvc.perform(get("/api/v1/transactions")
                         .param("type", "DEBIT")
                         .param("status", "PENDING")
@@ -256,6 +277,11 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenStatusIsInvalid() throws Exception {
+        when(mapper.toListTransactionQuery(any()))
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "transactionStatus inválido: INVALID_STATUS"));
+
         mockMvc.perform(get("/api/v1/transactions")
                         .param("status", "INVALID_STATUS"))
                 .andExpect(status().isBadRequest());
@@ -263,6 +289,15 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturn200ForGetTransactionsSummaryEndpoint() throws Exception {
+        TransactionSummary summary = new TransactionSummary(null, null, null, null,
+                0, BigDecimal.ZERO, "type", List.of());
+
+        SummaryQuery summaryQuery = new SummaryQuery(null, null, null, null, "type");
+
+        when(mapper.toSummaryQuery(any())).thenReturn(summaryQuery);
+
+        when(transactionPort.getSummary(any(SummaryQuery.class))).thenReturn(summary);
+
         mockMvc.perform(get("/api/v1/transactions/summary")
                         .param("groupBy", "type"))
                 .andExpect(status().isOk())
