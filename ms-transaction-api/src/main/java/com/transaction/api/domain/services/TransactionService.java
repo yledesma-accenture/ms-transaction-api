@@ -47,7 +47,7 @@ public class TransactionService implements ITransactionPort {
                 "TNX-2024-000001",
                 OffsetDateTime.parse("2024-03-15T09:00:00Z"),
                 OffsetDateTime.parse("2024-03-15T09:05:22Z"),
-                TransactionType.DEBIT,
+                "DEBIT",
                 "COMPLETED",
                 250,
                 "USD",
@@ -78,6 +78,7 @@ public class TransactionService implements ITransactionPort {
                 warnings
         );
     }
+
     private TransactionPage createDummyTransactionPage(int page, int size) {
         // Creamos un ejemplo simple con un único Transaction
         Transaction tx = new Transaction(
@@ -85,7 +86,7 @@ public class TransactionService implements ITransactionPort {
                 "EXT-0001",
                 java.time.OffsetDateTime.now(),
                 java.time.OffsetDateTime.now(),
-                TransactionType.DEBIT,
+                "DEBIT",
                 "COMPLETED",
                 1000,
                 "ARS",

@@ -5,12 +5,14 @@ import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.adapters.model.FilterCommon;
 import com.transaction.api.adapters.model.SummaryQuery;
-import com.transaction.api.domain.model.TransactionPage;
-import com.transaction.api.domain.model.TransactionSummary;
+import com.transaction.api.domain.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -22,6 +24,36 @@ public class TransactionServiceTest {
     @BeforeEach
     void setUp() {
         service = new TransactionService();
+    }
+
+    @Test
+    void transactionIdReturnsDetailWithExpectedFields() {
+        UUID expectedId = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+
+        TransactionDetail detail = service.transactionId(expectedId.toString());
+        assertNotNull(detail, "TransactionDetail should not be null");
+
+        Transaction tx = detail.transaction();
+        assertNotNull(tx, "Transaction should not be null");
+        assertEquals(expectedId, tx.id());
+        assertEquals("TNX-2024-000001", tx.externalRef());
+        assertEquals(250, tx.amount());
+        assertEquals("USD", tx.currency());
+        assertEquals("COMPLETED", tx.status());
+        assertTrue(tx.flagged());
+        assertEquals("Alice Martinez", tx.benefactor().holderName());
+        assertEquals("ACC-00123", tx.benefactor().accountNumber());
+
+        // createdAt / updatedAt at TransactionDetail level
+        OffsetDateTime expectedCreated = OffsetDateTime.parse("2026-06-29T19:35:04.387Z");
+        assertEquals(expectedCreated, detail.createdAt());
+        assertEquals(expectedCreated, detail.updatedAt());
+
+        // validation warnings
+        List<ValidationWarning> warnings = detail.validationWarnings();
+        assertNotNull(warnings);
+        assertEquals(1, warnings.size());
+        assertEquals("MISSING_DESCRIPTION", warnings.get(0).warningCode());
     }
 
     @Test

@@ -2,10 +2,10 @@ package com.transaction.api.adapters.inbound.rest;
 
 
 import com.transaction.api.adapters.model.SummaryQuery;
-import com.transaction.api.domain.model.TransactionPage;
-import com.transaction.api.domain.model.TransactionSummary;
+import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.application.ITransactionPort;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.HttpStatus;
@@ -14,7 +14,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -36,9 +38,51 @@ public class TransactionControllerTest {
 
     @Test
     void shouldReturnTransaction() throws Exception {
+
+        UUID transactionUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        UUID fileUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+
+        Transaction transaction = new Transaction(
+                transactionUuid,
+                "ext-123",
+                OffsetDateTime.parse("2026-01-10T10:15:30Z"),
+                OffsetDateTime.parse("2026-01-10T11:15:30Z"),
+                "DEBIT",
+                "PENDING",
+                1000,
+                "USD",
+                null,
+                null,
+                "test",
+                fileUuid,
+                "pablo.conde",
+                false,
+                null
+        );
+
+        TransactionDetail detail = new TransactionDetail(
+                transaction,
+                OffsetDateTime.parse("2026-01-10T12:00:00Z"),
+                OffsetDateTime.parse("2026-01-10T12:30:00Z"),
+                List.of()
+        );
+
+        when(transactionPort.transactionId("2323")).thenReturn(detail);
+
         mockMvc.perform(get("/api/v1/transactions/2323"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andExpect(jsonPath("$.transaction.id").value("123e4567-e89b-12d3-a456-426614174000"))
+                .andExpect(jsonPath("$.transaction.externalRef").value("ext-123"))
+                .andExpect(jsonPath("$.transaction.type").value("DEBIT"))
+                .andExpect(jsonPath("$.transaction.status").value("PENDING"))
+                .andExpect(jsonPath("$.transaction.amount").value(1000))
+                .andExpect(jsonPath("$.transaction.currency").value("USD"))
+                .andExpect(jsonPath("$.transaction.description").value("test"))
+                .andExpect(jsonPath("$.transaction.fileId").value("123e4567-e89b-12d3-a456-426614174001"))
+                .andExpect(jsonPath("$.transaction.createdBy").value("pablo.conde"))
+                .andExpect(jsonPath("$.transaction.flagged").value(false))
+                .andExpect(jsonPath("$.validationWarnings").isArray())
+                .andExpect(jsonPath("$.validationWarnings").isEmpty());
     }
 
     @Test
