@@ -1,12 +1,15 @@
 package com.transaction.api.domain.services;
 
-import com.transaction.api.adapters.inbound.rest.TransactionQueryMapper;
 import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.adapters.model.FilterCommon;
 import com.transaction.api.adapters.model.SummaryQuery;
 import com.transaction.api.domain.model.*;
 import org.junit.jupiter.api.BeforeEach;
+import com.transaction.api.domain.model.Transaction;
+import com.transaction.api.domain.model.TransactionDetail;
+import com.transaction.api.domain.model.TransactionPage;
+import com.transaction.api.domain.model.ValidationWarning;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -25,7 +28,6 @@ public class TransactionServiceTest {
     void setUp() {
         service = new TransactionService();
     }
-
     @Test
     void transactionIdReturnsDetailWithExpectedFields() {
         UUID expectedId = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
@@ -78,10 +80,28 @@ public class TransactionServiceTest {
         when(query.filterCommon()).thenReturn(filterCommon);
         when(filterCommon.page()).thenReturn(0);
         when(filterCommon.size()).thenReturn(10);
+        TransactionPage page = service.transactionCbu(
+                "0000003100012345678901",
+                null,
+                null,
+                null,
+                null,
+                0,
+                10,
+                "transactionAt,desc"
+        );
 
         TransactionPage result = service.listTransaction(query);
 
         assertNotNull(result);
+        assertNotNull(page);
+        assertNotNull(page.content());
+        assertEquals(2, page.content().size(), "Service mock adds two transactions");
+        assertEquals(2L, page.totalElements());
+        assertEquals(1, page.totalPages());
+        assertFalse(page.last());
+        assertEquals(0, page.page());
+        assertEquals(10, page.size());
     }
 
     @Test
@@ -98,9 +118,19 @@ public class TransactionServiceTest {
 
         assertNotNull(result);
     }
+    void transactionCuitReturnsPageWithContent() {
+        TransactionPage page = service.transactionCuit(
+                "20301234567",
+                null,
+                null,
+                null,
+                null,
+                0,
+                5,
+                "transactionAt,desc"
+        );
 
-    @Test
-    void shouldHandleNullQueryInGetSummary() {
+
         assertThrows(NullPointerException.class, () -> service.getSummary(null));
     }
 

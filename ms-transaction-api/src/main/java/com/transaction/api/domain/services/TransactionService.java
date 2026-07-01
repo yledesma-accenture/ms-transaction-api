@@ -5,11 +5,14 @@ import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.adapters.model.SummaryQuery;
 import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.application.ITransactionPort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -173,5 +176,32 @@ public class TransactionService implements ITransactionPort {
                 summaryQuery.ingestionDateTo(),
                 summaryQuery.groupBy()
         );
+    }
+
+    @Override
+    public TransactionPage transactionCbu(String cbu, LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom,
+                                          LocalDate ingestionDateTo, int page, int size, String sort) {
+        List<Transaction> transaction = new ArrayList<>();
+        transaction.add(createTransactionDetailMock().transaction());
+        transaction.add(createTransactionDetailMock().transaction());
+        //List<Transaction> transaction = repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada"));
+        if (transaction == null || transaction.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada");
+        }
+        int totalPages = (int) Math.ceil((double) transaction.size() / size); //rehacer select count(*) transaction
+        return new  TransactionPage(transaction , page, size, transaction.size(), totalPages, false);
+    }
+
+    @Override
+    public TransactionPage transactionCuit(String cuit, LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom, LocalDate ingestionDateTo, int page, int size, String sort) {
+        List<Transaction> transaction = new ArrayList<>();
+        transaction.add(createTransactionDetailMock().transaction());
+        transaction.add(createTransactionDetailMock().transaction());
+        //List<Transaction> transaction = repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada"));
+        if (transaction == null || transaction.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transacción no encontrada");
+        }
+        int totalPages = (int) Math.ceil((double) transaction.size() / size); //rehacer select count(*) transaction
+        return new  TransactionPage(transaction , page, size, transaction.size(), totalPages, false);
     }
 }
