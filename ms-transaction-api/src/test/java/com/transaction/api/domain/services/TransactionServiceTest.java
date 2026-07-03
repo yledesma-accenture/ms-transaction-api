@@ -5,12 +5,17 @@ import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.adapters.model.FilterCommon;
 import com.transaction.api.adapters.model.SummaryQuery;
 import com.transaction.api.domain.model.*;
+import com.transaction.api.domain.port.infrastructure.ITransactionDatabasePort;
 import org.junit.jupiter.api.BeforeEach;
 import com.transaction.api.domain.model.Transaction;
 import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
 import com.transaction.api.domain.model.ValidationWarning;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -20,14 +25,15 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class TransactionServiceTest {
+@ExtendWith(MockitoExtension.class)
+class TransactionServiceTest {
 
+    @InjectMocks
     private TransactionService service;
 
-    @BeforeEach
-    void setUp() {
-        service = new TransactionService();
-    }
+    @Mock
+    private ITransactionDatabasePort transactionDatabasePort;
+
     @Test
     void transactionIdReturnsDetailWithExpectedFields() {
         UUID expectedId = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
@@ -60,16 +66,19 @@ public class TransactionServiceTest {
 
     @Test
     void shouldSearchTransactionByUser() {
-        FilterCommon filterCommon = mock(FilterCommon.class);
         SearchTransactionByUserQuery query = mock(SearchTransactionByUserQuery.class);
 
-        when(query.filterCommon()).thenReturn(filterCommon);
-        when(filterCommon.page()).thenReturn(0);
-        when(filterCommon.size()).thenReturn(10);
+        TransactionPage expected = new TransactionPage(
+                List.of(), 0, 10, 0, 0, true
+        );
+
+        when(transactionDatabasePort.searchTransactionByUser(query)).thenReturn(expected);
 
         TransactionPage result = service.searchTransactionByUser(query);
 
         assertNotNull(result);
+        assertEquals(expected, result);
+        verify(transactionDatabasePort).searchTransactionByUser(query);
     }
 
     @Test

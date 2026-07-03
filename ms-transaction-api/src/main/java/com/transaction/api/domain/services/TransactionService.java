@@ -5,6 +5,7 @@ import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.adapters.model.SummaryQuery;
 import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.application.ITransactionPort;
+import com.transaction.api.domain.port.infrastructure.ITransactionDatabasePort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,6 +19,11 @@ import java.util.UUID;
 
 @Service
 public class TransactionService implements ITransactionPort {
+    private final ITransactionDatabasePort transactionDatabasePort;
+
+    public TransactionService(ITransactionDatabasePort transactionDatabasePort) {
+        this.transactionDatabasePort = transactionDatabasePort;
+    }
 
     private  TransactionDetail createTransactionDetailMock() {
         // Crear los datos de benefactor
@@ -159,7 +165,7 @@ public class TransactionService implements ITransactionPort {
 
     @Override
     public TransactionPage searchTransactionByUser(SearchTransactionByUserQuery searchTransactionByUserQuery) {
-        return createDummyTransactionPage(searchTransactionByUserQuery.filterCommon().page(), searchTransactionByUserQuery.filterCommon().size());
+        return transactionDatabasePort.searchTransactionByUser(searchTransactionByUserQuery);
     }
 
     @Override
