@@ -88,34 +88,6 @@ public class TransactionService implements ITransactionPort {
         );
     }
 
-    private TransactionPage createDummyTransactionPage(int page, int size) {
-        // Creamos un ejemplo simple con un único Transaction
-        Transaction tx = new Transaction(
-                UUID.randomUUID(),
-                "EXT-0001",
-                java.time.OffsetDateTime.now(),
-                java.time.OffsetDateTime.now(),
-                "DEBIT",
-                "COMPLETED",
-                1000,
-                "ARS",
-                new Party(UUID.randomUUID(), "20000000001", "0170099220000067797370", "20329851657", "Juan Perez", "PERSON", "001", "0001"),
-                new Party(UUID.randomUUID(), "30000000002", "0170099220000067797371", "20329851658", "Maria Gomez", "PERSON", "001", "0002"),
-                "Pago de ejemplo",
-                UUID.randomUUID(),
-                "system",
-                false,
-                null
-        );
-
-        List<Transaction> content = List.of(tx);
-        long totalElements = content.size();
-        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
-        boolean last = page >= Math.max(0, totalPages - 1);
-
-        return new TransactionPage(content, page, size, totalElements, totalPages, last);
-    }
-
     private TransactionSummary createDummyTransactionSummary(LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom,
                                                              LocalDate ingestionDateTo, String groupBy) {
         TransactionSummaryGroup group1 = new TransactionSummaryGroup(
@@ -170,7 +142,7 @@ public class TransactionService implements ITransactionPort {
 
     @Override
     public TransactionPage listTransaction(ListTransactionsQuery listTransactionsQuery) {
-        return createDummyTransactionPage(listTransactionsQuery.filterCommon().page(), listTransactionsQuery.filterCommon().size());
+        return transactionDatabasePort.listTransaction(listTransactionsQuery);
     }
 
     @Override

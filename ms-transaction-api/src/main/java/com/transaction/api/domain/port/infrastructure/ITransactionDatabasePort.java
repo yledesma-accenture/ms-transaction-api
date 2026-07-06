@@ -1,5 +1,6 @@
 package com.transaction.api.domain.port.infrastructure;
 
+import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
 import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
@@ -10,4 +11,5 @@ public interface ITransactionDatabasePort {
 
     public Optional<TransactionDetail> findById(String transactionId);
     TransactionPage searchTransactionByUser(SearchTransactionByUserQuery  searchTransactionByUserQuery);
+    TransactionPage listTransaction(ListTransactionsQuery listTransactionsQuery);
 }

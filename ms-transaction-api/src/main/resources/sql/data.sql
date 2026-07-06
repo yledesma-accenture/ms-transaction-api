@@ -12,7 +12,10 @@ INSERT INTO ingested_files (id, file_name, file_format, status, checksum, file_s
 VALUES
     ('aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'transactions_20260101.csv', 'CSV', 'COMPLETED', 'chk000000000000000000000000000000000000000000000000000000000001', 10240, 5, 5, 0, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'transactions_20260102.json', 'JSON', 'COMPLETED', 'chk000000000000000000000000000000000000000000000000000000000002', 20480, 4, 3, 1, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'transactions_20260103.xml', 'XML', 'FAILED', 'chk000000000000000000000000000000000000000000000000000000000003', 5120, 3, 1, 2, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    ('aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'transactions_20260103.xml', 'XML', 'FAILED', 'chk000000000000000000000000000000000000000000000000000000000003', 5120, 3, 1, 2, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('aaaaaaa4-aaaa-aaaa-aaaa-aaaaaaaaaaa4', 'transactions_20260104.csv', 'CSV', 'COMPLETED', 'chk000000000000000000000000000000000000000000000000000000000004', 11240, 6, 6, 0, 'admin', TIMESTAMP '2026-01-04 08:00:00', TIMESTAMP '2026-01-04 09:00:00'),
+    ('aaaaaaa5-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'transactions_20260105.csv', 'CSV', 'PROCESSING', 'chk000000000000000000000000000000000000000000000000000000000005', 12240, 7, 5, 2, 'admin', TIMESTAMP '2026-01-05 08:00:00', TIMESTAMP '2026-01-05 10:30:00'),
+    ('aaaaaaa6-aaaa-aaaa-aaaa-aaaaaaaaaaa6', 'transactions_20260106.json', 'JSON', 'COMPLETED', 'chk000000000000000000000000000000000000000000000000000000000006', 13240, 8, 8, 0, 'analyst', TIMESTAMP '2026-01-06 08:00:00', TIMESTAMP '2026-01-06 11:15:00');
 
 -- TRANSACTIONS
 INSERT INTO transactions (id, external_ref, transaction_at, ingested_at, type, status, amount, currency, benefactor_id, beneficiary_id, description, file_id, created_by, flagged, flag_reason)
@@ -35,10 +38,55 @@ VALUES
 
     ('bbbbbbb5-bbbb-bbbb-bbbb-bbbbbbbbbbb5', 'EXT-0005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'REFUND', 'COMPLETED', 999.99, 'EUR',
      '44444444-4444-4444-4444-444444444444', '55555555-5555-5555-5555-555555555555', 'Reembolso de compra',
-     'aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'system', FALSE, NULL);
+     'aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'system', FALSE, NULL),
+    ('bbbbbbb6-bbbb-bbbb-bbbb-bbbbbbbbbbb6', 'EXT-0006', TIMESTAMP WITH TIME ZONE '2026-01-04 10:15:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-04 10:20:00+00:00', 'TRANSFER', 'COMPLETED', 1200.00, 'ARS',
+     '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', 'Transferencia simple',
+     'aaaaaaa4-aaaa-aaaa-aaaa-aaaaaaaaaaa4', 'admin', FALSE, NULL),
+
+    ('bbbbbbb7-bbbb-bbbb-bbbb-bbbbbbbbbbb7', 'EXT-0007', TIMESTAMP WITH TIME ZONE '2026-01-04 12:45:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-04 12:50:00+00:00', 'PAYMENT', 'FAILED', 7800.25, 'ARS',
+     '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', 'Pago rechazado',
+     'aaaaaaa4-aaaa-aaaa-aaaa-aaaaaaaaaaa4', 'admin', TRUE, 'Cuenta destino bloqueada'),
+
+    ('bbbbbbb8-bbbb-bbbb-bbbb-bbbbbbbbbbb8', 'EXT-0008', TIMESTAMP WITH TIME ZONE '2026-01-05 09:10:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-05 09:11:00+00:00', 'CREDIT', 'PENDING', 450.00, 'USD',
+     '33333333-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222222', 'Acreditación pendiente',
+     'aaaaaaa5-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'system', FALSE, NULL),
+
+    ('bbbbbbb9-bbbb-bbbb-bbbb-bbbbbbbbbbb9', 'EXT-0009', TIMESTAMP WITH TIME ZONE '2026-01-05 14:30:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-05 14:35:00+00:00', 'DEBIT', 'COMPLETED', 99999.99, 'EUR',
+     '44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'Débito corporativo',
+     'aaaaaaa5-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'operator', TRUE, 'Monto elevado'),
+
+    ('bbbbbb10-bbbb-bbbb-bbbb-bbbbbbbbbb10', 'EXT-0010', TIMESTAMP WITH TIME ZONE '2026-01-06 07:00:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-06 07:02:00+00:00', 'REFUND', 'COMPLETED', 150.75, 'ARS',
+     '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', 'Reintegro promoción',
+     'aaaaaaa6-aaaa-aaaa-aaaa-aaaaaaaaaaa6', 'analyst', FALSE, NULL),
+
+    ('bbbbbb11-bbbb-bbbb-bbbb-bbbbbbbbbb11', 'EXT-0011', TIMESTAMP WITH TIME ZONE '2026-01-06 15:40:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-06 15:50:00+00:00', 'TRANSFER', 'PENDING', 21000.00, 'USD',
+     '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333', 'Transferencia internacional en revisión',
+     'aaaaaaa6-aaaa-aaaa-aaaa-aaaaaaaaaaa6', 'analyst', TRUE, 'Requiere validación manual'),
+
+    ('bbbbbb12-bbbb-bbbb-bbbb-bbbbbbbbbb12', 'EXT-0012', TIMESTAMP WITH TIME ZONE '2026-01-07 09:00:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-07 09:05:00+00:00', 'PAYMENT', 'COMPLETED', 3000.00, 'ARS',
+     '22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Pago proveedor local',
+     'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'system', FALSE, NULL),
+
+    ('bbbbbb13-bbbb-bbbb-bbbb-bbbbbbbbbb13', 'EXT-0013', TIMESTAMP WITH TIME ZONE '2026-01-07 18:20:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-07 18:25:00+00:00', 'DEBIT', 'FAILED', 87.30, 'EUR',
+     '55555555-5555-5555-5555-555555555555', '44444444-4444-4444-4444-444444444444', 'Débito rechazado',
+     'aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'operator', TRUE, 'Error de autorización'),
+
+    ('bbbbbb14-bbbb-bbbb-bbbb-bbbbbbbbbb14', 'EXT-0014', TIMESTAMP WITH TIME ZONE '2026-01-08 11:10:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-08 11:15:00+00:00', 'CREDIT', 'COMPLETED', 765.40, 'USD',
+     '33333333-3333-3333-3333-333333333333', '55555555-5555-5555-5555-555555555555', 'Crédito comercial',
+     'aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'system', FALSE, NULL),
+
+    ('bbbbbb15-bbbb-bbbb-bbbb-bbbbbbbbbb15', 'EXT-0015', TIMESTAMP WITH TIME ZONE '2026-01-08 20:55:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-08 21:00:00+00:00', 'TRANSFER', 'FAILED', 500000.00, 'ARS',
+     '44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'Transferencia rechazada por control',
+     'aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'admin', TRUE, 'Posible fraude');
+
 
 -- TRANSACTION VALIDATION WARNINGS
 INSERT INTO transaction_validation_warnings (id, transaction_id, warning_code, warning_message)
 VALUES
     ('ccccccc1-cccc-cccc-cccc-ccccccccccc1', 'bbbbbbb3-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 'HIGH_AMOUNT', 'La transacción supera el umbral esperado para esta cuenta'),
-    ('ccccccc2-cccc-cccc-cccc-ccccccccccc2', 'bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'INSUFFICIENT_FUNDS', 'La cuenta origen no posee saldo suficiente');
+    ('ccccccc2-cccc-cccc-cccc-ccccccccccc2', 'bbbbbbb4-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'INSUFFICIENT_FUNDS', 'La cuenta origen no posee saldo suficiente'),
+    ('ccccccc2-cccc-cccc-cccc-ccccccccccc3', 'bbbbbbb7-bbbb-bbbb-bbbb-bbbbbbbbbbb7', 'BLOCKED_ACCOUNT', 'La cuenta destino se encuentra bloqueada'),
+    ('ccccccc3-cccc-cccc-cccc-ccccccccccc4', 'bbbbbbb9-bbbb-bbbb-bbbb-bbbbbbbbbbb9', 'HIGH_AMOUNT', 'Monto elevado para operación habitual'),
+    ('ccccccc4-cccc-cccc-cccc-ccccccccccc5', 'bbbbbb11-bbbb-bbbb-bbbb-bbbbbbbbbb11', 'MANUAL_REVIEW', 'La transacción requiere revisión manual'),
+    ('ccccccc5-cccc-cccc-cccc-ccccccccccc6', 'bbbbbb13-bbbb-bbbb-bbbb-bbbbbbbbbb13', 'AUTH_ERROR', 'Error de autorización informado por el banco'),
+    ('ccccccc6-cccc-cccc-cccc-ccccccccccc7', 'bbbbbb15-bbbb-bbbb-bbbb-bbbbbbbbbb15', 'FRAUD_ALERT', 'La transacción fue marcada por posible fraude');

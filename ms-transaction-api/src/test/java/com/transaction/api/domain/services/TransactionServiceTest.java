@@ -83,34 +83,19 @@ class TransactionServiceTest {
 
     @Test
     void shouldReturnListTransaction() {
-        FilterCommon filterCommon = mock(FilterCommon.class);
         ListTransactionsQuery query = mock(ListTransactionsQuery.class);
 
-        when(query.filterCommon()).thenReturn(filterCommon);
-        when(filterCommon.page()).thenReturn(0);
-        when(filterCommon.size()).thenReturn(10);
-        TransactionPage page = service.transactionCbu(
-                "0000003100012345678901",
-                null,
-                null,
-                null,
-                null,
-                0,
-                10,
-                "transactionAt,desc"
+        TransactionPage expected = new TransactionPage(
+                List.of(), 0, 10, 0, 0, true
         );
+
+        when(transactionDatabasePort.listTransaction(query)).thenReturn(expected);
 
         TransactionPage result = service.listTransaction(query);
 
         assertNotNull(result);
-        assertNotNull(page);
-        assertNotNull(page.content());
-        assertEquals(2, page.content().size(), "Service mock adds two transactions");
-        assertEquals(2L, page.totalElements());
-        assertEquals(1, page.totalPages());
-        assertFalse(page.last());
-        assertEquals(0, page.page());
-        assertEquals(10, page.size());
+        assertEquals(expected, result);
+        verify(transactionDatabasePort).listTransaction(query);
     }
 
     @Test

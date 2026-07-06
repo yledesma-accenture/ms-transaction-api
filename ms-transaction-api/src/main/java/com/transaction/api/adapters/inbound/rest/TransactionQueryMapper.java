@@ -62,7 +62,7 @@ public class TransactionQueryMapper {
                 .ingestionDateTo(request.ingestionDateTo())
                 .page(request.page() != null ? request.page() : 0)
                 .size(request.size() != null ? request.size() : 20)
-                .sort(request.sort() != null ? request.sort() : "transactionAt,desc")
+                .sort(request.sort() != null ? request.sort() : "transaction_At,desc")
                 .build();
     }
 
