@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -102,16 +103,19 @@ class TransactionServiceTest {
     void shouldReturnSummary() {
         SummaryQuery query = mock(SummaryQuery.class);
 
-        when(query.txDateFrom()).thenReturn(LocalDate.of(2024, 1, 1));
-        when(query.txDateTo()).thenReturn(LocalDate.of(2024, 1, 31));
-        when(query.ingestionDateFrom()).thenReturn(LocalDate.of(2024, 2, 1));
-        when(query.ingestionDateTo()).thenReturn(LocalDate.of(2024, 2, 29));
-        when(query.groupBy()).thenReturn("STATUS");
+        TransactionSummary expected = new TransactionSummary(null, null, null, null,
+                0, BigDecimal.ZERO, "type", List.of());
+
+        when(transactionDatabasePort.getSummary(query)).thenReturn(expected);
 
         TransactionSummary result = service.getSummary(query);
 
         assertNotNull(result);
+        assertEquals(expected, result);
+        verify(transactionDatabasePort).getSummary(query);
     }
+
+    //@Test
     void transactionCuitReturnsPageWithContent() {
         TransactionPage page = service.transactionCuit(
                 "20301234567",

@@ -3,10 +3,8 @@ package com.transaction.api.adapters.outbound.persistence;
 import com.transaction.api.adapters.model.FilterCommon;
 import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
-import com.transaction.api.domain.model.Transaction;
-import com.transaction.api.domain.model.TransactionPage;
-import com.transaction.api.domain.model.TransactionStatus;
-import com.transaction.api.domain.model.TransactionType;
+import com.transaction.api.adapters.model.SummaryQuery;
+import com.transaction.api.domain.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
@@ -161,5 +159,32 @@ class TransactionDatabaseAdapterTest {
         assertEquals(20, result.size());
         assertEquals(1, result.totalPages());
         assertTrue(result.last());
+    }
+
+    @Test
+    void shouldGetSummaryGroupedByStatusWithoutFilters() {
+        SummaryQuery query = new SummaryQuery(
+                null,
+                null,
+                null,
+                null,
+                "status"
+        );
+
+        TransactionSummary result = adapter.getSummary(query);
+
+        assertNotNull(result);
+        assertEquals("status", result.groupedBy());
+        assertEquals(15, result.totalCount());
+        assertNotNull(result.totalAmount());
+        assertNotNull(result.groups());
+        assertFalse(result.groups().isEmpty());
+
+        TransactionSummaryGroup completed = result.groups().stream()
+                .filter(group -> "COMPLETED".equals(group.key()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(8, completed.count());
     }
 }

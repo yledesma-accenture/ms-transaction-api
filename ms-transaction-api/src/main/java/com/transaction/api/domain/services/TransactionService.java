@@ -88,48 +88,6 @@ public class TransactionService implements ITransactionPort {
         );
     }
 
-    private TransactionSummary createDummyTransactionSummary(LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom,
-                                                             LocalDate ingestionDateTo, String groupBy) {
-        TransactionSummaryGroup group1 = new TransactionSummaryGroup(
-                "DEBIT",
-                5,
-                new BigDecimal("5000"),
-                new BigDecimal("1000"),
-                new BigDecimal("500"),
-                new BigDecimal("1500"),
-                0
-        );
-
-        TransactionSummaryGroup group2 = new TransactionSummaryGroup(
-                "CREDIT",
-                3,
-                new BigDecimal("7500"),
-                new BigDecimal("2500"),
-                new BigDecimal("2000"),
-                new BigDecimal("3500"),
-                1
-        );
-
-        List<TransactionSummaryGroup> groups = List.of(group1, group2);
-
-        long totalCount = groups.stream().mapToLong(TransactionSummaryGroup::count).sum();
-        BigDecimal totalAmount = groups.stream()
-                .map(TransactionSummaryGroup::totalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return new TransactionSummary(
-                txDateFrom,
-                txDateTo,
-                ingestionDateFrom,
-                ingestionDateTo,
-                totalCount,
-                totalAmount,
-                groupBy,
-                groups
-        );
-    }
-
-
     @Override
     public TransactionDetail transactionId(String transactionId) {
         return createTransactionDetailMock();
@@ -147,13 +105,7 @@ public class TransactionService implements ITransactionPort {
 
     @Override
     public TransactionSummary getSummary(SummaryQuery summaryQuery) {
-        return createDummyTransactionSummary(
-                summaryQuery.txDateFrom(),
-                summaryQuery.txDateTo(),
-                summaryQuery.ingestionDateFrom(),
-                summaryQuery.ingestionDateTo(),
-                summaryQuery.groupBy()
-        );
+        return transactionDatabasePort.getSummary(summaryQuery);
     }
 
     @Override

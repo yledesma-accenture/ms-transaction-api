@@ -2,15 +2,14 @@ package com.transaction.api.adapters.outbound.persistence;
 
 import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
-import com.transaction.api.domain.model.Party;
-import com.transaction.api.domain.model.Transaction;
-import com.transaction.api.domain.model.TransactionDetail;
-import com.transaction.api.domain.model.TransactionPage;
+import com.transaction.api.adapters.model.SummaryQuery;
+import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.infrastructure.ITransactionDatabasePort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -300,6 +299,121 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
         return new TransactionPage(transactions, page, size, total, totalPages, last);
     }
 
+    @Override
+    public TransactionSummary getSummary(SummaryQuery query) {
+        List<TransactionSummaryGroup> groups = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+        List<Object> globalParams = new ArrayList<>();
+
+        String groupByColumn = resolveGroupByColumn(query.groupBy());
+
+        boolean joinIngestedFiles =
+                query.ingestionDateFrom() != null || query.ingestionDateTo() != null;
+
+        StringBuilder fromClause = new StringBuilder(" FROM transactions t ");
+        if (joinIngestedFiles) {
+            fromClause.append(" JOIN ingested_files f ON t.file_id = f.id ");
+        }
+
+        StringBuilder whereClause = new StringBuilder(" WHERE 1=1 ");
+
+        if (query.txDateFrom() != null) {
+            whereClause.append(" AND t.transaction_at >= ? ");
+            params.add(query.txDateFrom());
+            globalParams.add(query.txDateFrom());
+        }
+
+        if (query.txDateTo() != null) {
+            whereClause.append(" AND t.transaction_at <= ? ");
+            params.add(query.txDateTo());
+            globalParams.add(query.txDateTo());
+        }
+
+        if (query.ingestionDateFrom() != null) {
+            whereClause.append(" AND f.processed_at >= ? ");
+            params.add(query.ingestionDateFrom());
+            globalParams.add(query.ingestionDateFrom());
+        }
+
+        if (query.ingestionDateTo() != null) {
+            whereClause.append(" AND f.processed_at <= ? ");
+            params.add(query.ingestionDateTo());
+            globalParams.add(query.ingestionDateTo());
+        }
+
+        String globalSql = """
+        SELECT
+            COUNT(*) AS total_count,
+            COALESCE(SUM(t.amount), 0) AS total_amount
+    """ + fromClause + whereClause;
+
+        String groupSql = """
+        SELECT
+            %s AS group_key,
+            COUNT(*) AS count,
+            COALESCE(SUM(t.amount), 0) AS total_amount,
+            COALESCE(AVG(t.amount), 0) AS average_amount,
+            COALESCE(MIN(t.amount), 0) AS min_amount,
+            COALESCE(MAX(t.amount), 0) AS max_amount,
+            SUM(CASE WHEN t.flagged = TRUE THEN 1 ELSE 0 END) AS flagged_count
+    """.formatted(groupByColumn) + fromClause + whereClause +
+                " GROUP BY " + groupByColumn +
+                " ORDER BY " + groupByColumn;
+
+        long totalCount = 0;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        try (Connection conn = dataSource.getConnection()) {
+
+            try (PreparedStatement stmt = conn.prepareStatement(globalSql)) {
+                for (int i = 0; i < globalParams.size(); i++) {
+                    stmt.setObject(i + 1, globalParams.get(i));
+                }
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        totalCount = rs.getLong("total_count");
+                        totalAmount = rs.getBigDecimal("total_amount");
+                    }
+                }
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(groupSql)) {
+                for (int i = 0; i < params.size(); i++) {
+                    stmt.setObject(i + 1, params.get(i));
+                }
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        groups.add(new TransactionSummaryGroup(
+                                rs.getString("group_key"),
+                                rs.getInt("count"),
+                                rs.getBigDecimal("total_amount"),
+                                rs.getBigDecimal("average_amount"),
+                                rs.getBigDecimal("min_amount"),
+                                rs.getBigDecimal("max_amount"),
+                                rs.getInt("flagged_count")
+                        ));
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error getting transaction summary", e);
+        }
+
+        return new TransactionSummary(
+                query.txDateFrom(),
+                query.txDateTo(),
+                query.ingestionDateFrom(),
+                query.ingestionDateTo(),
+                totalCount,
+                totalAmount,
+                query.groupBy(),
+                groups
+        );
+    }
+
     private Transaction mapRow(ResultSet rs) throws SQLException {
         Party benefactor = new Party(
                 rs.getObject("benefactor_id", UUID.class),
@@ -340,6 +454,21 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
                 rs.getBoolean("flagged"),
                 rs.getString("flag_reason")
         );
+    }
+
+    private String resolveGroupByColumn(String groupBy) {
+        if (groupBy == null || groupBy.isBlank()) {
+            return "t.status";
+        }
+
+        return switch (groupBy.toLowerCase()) {
+            case "status" -> "t.status";
+            case "type" -> "t.type";
+            case "currency" -> "t.currency";
+            case "created_by" -> "t.created_by";
+            case "flagged" -> "t.flagged";
+            default -> throw new IllegalArgumentException("Invalid groupBy: " + groupBy);
+        };
     }
 
 }
