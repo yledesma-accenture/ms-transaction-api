@@ -10,10 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +20,13 @@ import java.util.UUID;
 @Slf4j
 @Repository
 public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
+
+    private static class QueryParts {
+        StringBuilder sql = new StringBuilder();
+        StringBuilder countSql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        List<Object> countParams = new ArrayList<>();
+    }
 
     private final DataSource dataSource;
 
@@ -38,64 +42,63 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
     @Override
     public TransactionPage searchTransactionByUser(SearchTransactionByUserQuery query) {
         List<Transaction> transactions = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+        List<Object> countParams = new ArrayList<>();
         int total = 0;
 
-        String sql = """
-        SELECT
-            t.id,
-            t.external_ref,
-            t.transaction_at,
-            t.ingested_at,
-            t.type,
-            t.status,
-            t.amount,
-            t.currency,
-            t.description,
-            t.file_id,
-            t.created_by,
-            t.flagged,
-            t.flag_reason,
+        QueryParts queryParts = baseQuery();
 
-            b.id AS benefactor_id,
-            b.account_number AS benefactor_account_number,
-            b.cbu AS benefactor_cbu,
-            b.cuit AS benefactor_cuit,
-            b.holder_name AS benefactor_holder_name,
-            b.holder_type AS benefactor_holder_type,
-            b.bank_code AS benefactor_bank_code,
-            b.branch_code AS benefactor_branch_code,
+        queryParts.sql.append(" WHERE t.created_by = ?");
+        queryParts.countSql.append(" WHERE t.created_by = ?");
+        params.add(query.userId().toString());
+        countParams.add(query.userId().toString());
 
-            y.id AS beneficiary_id,
-            y.account_number AS beneficiary_account_number,
-            y.cbu AS beneficiary_cbu,
-            y.cuit AS beneficiary_cuit,
-            y.holder_name AS beneficiary_holder_name,
-            y.holder_type AS beneficiary_holder_type,
-            y.bank_code AS beneficiary_bank_code,
-            y.branch_code AS beneficiary_branch_code
+        var filter = query.filterCommon();
 
-        FROM transactions t
-        JOIN accounts b ON t.benefactor_id = b.id
-        JOIN accounts y ON t.beneficiary_id = y.id
-        WHERE t.created_by = ?
-        ORDER BY t.transaction_at DESC
-        LIMIT ? OFFSET ?
-    """;
+        if (filter.txDateFrom() != null) {
+            queryParts.sql.append(" AND t.transaction_at >= ?");
+            queryParts.countSql.append(" AND t.transaction_at >= ?");
+            params.add(Date.valueOf(filter.txDateFrom()));
+            countParams.add(Date.valueOf(filter.txDateFrom()));
+        }
 
-        String countSql = """
-        SELECT COUNT(*)
-        FROM transactions t
-        WHERE t.created_by = ?
-    """;
+        if (filter.txDateTo() != null) {
+            queryParts.sql.append(" AND t.transaction_at <= ?");
+            queryParts.countSql.append(" AND t.transaction_at <= ?");
+            params.add(Date.valueOf(filter.txDateTo()));
+            countParams.add(Date.valueOf(filter.txDateTo()));
+        }
 
-        int page = query.filterCommon().page();
-        int size = query.filterCommon().size();
+        if (filter.ingestionDateFrom() != null) {
+            queryParts.sql.append(" AND t.ingested_at >= ?");
+            queryParts.countSql.append(" AND t.ingested_at >= ?");
+            params.add(Date.valueOf(filter.ingestionDateFrom()));
+            countParams.add(Date.valueOf(filter.ingestionDateFrom()));
+        }
+
+        if (filter.ingestionDateTo() != null) {
+            queryParts.sql.append(" AND t.ingested_at <= ?");
+            queryParts.countSql.append(" AND t.ingested_at <= ?");
+            params.add(Date.valueOf(filter.ingestionDateTo()));
+            countParams.add(Date.valueOf(filter.ingestionDateTo()));
+        }
+
+        queryParts.sql.append(buildOrderBy(filter.sort()));
+        queryParts.sql.append(" LIMIT ? OFFSET ?");
+
+        int page = filter.page();
+        int size = filter.size();
         int offset = page * size;
+
+        params.add(size);
+        params.add(offset);
 
         try (Connection conn = dataSource.getConnection()) {
 
-            try (PreparedStatement countStmt = conn.prepareStatement(countSql)) {
-                countStmt.setString(1, String.valueOf(query.userId()));
+            try (PreparedStatement countStmt = conn.prepareStatement(queryParts.countSql.toString())) {
+                for (int i = 0; i < countParams.size(); i++) {
+                    countStmt.setObject(i + 1, countParams.get(i));
+                }
 
                 try (ResultSet rs = countStmt.executeQuery()) {
                     if (rs.next()) {
@@ -104,16 +107,14 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
                 }
             }
 
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, String.valueOf(query.userId()));
-                stmt.setInt(2, size);
-                stmt.setInt(3, offset);
+            try (PreparedStatement stmt = conn.prepareStatement(queryParts.sql.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    stmt.setObject(i + 1, params.get(i));
+                }
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
-                        Transaction transaction = mapRow(rs);
-
-                        transactions.add(transaction);
+                        transactions.add(mapRow(rs));
                     }
                 }
             }
@@ -132,129 +133,88 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
     public TransactionPage listTransaction(ListTransactionsQuery listTransactionsQuery) {
         List<Transaction> transactions = new ArrayList<>();
         long total = 0;
-
-        StringBuilder sql = new StringBuilder("""
-        SELECT
-            t.id,
-            t.external_ref,
-            t.transaction_at,
-            t.ingested_at,
-            t.type,
-            t.status,
-            t.amount,
-            t.currency,
-            t.description,
-            t.file_id,
-            t.created_by,
-            t.flagged,
-            t.flag_reason,
-
-            b.id AS benefactor_id,
-            b.account_number AS benefactor_account_number,
-            b.cbu AS benefactor_cbu,
-            b.cuit AS benefactor_cuit,
-            b.holder_name AS benefactor_holder_name,
-            b.holder_type AS benefactor_holder_type,
-            b.bank_code AS benefactor_bank_code,
-            b.branch_code AS benefactor_branch_code,
-
-            y.id AS beneficiary_id,
-            y.account_number AS beneficiary_account_number,
-            y.cbu AS beneficiary_cbu,
-            y.cuit AS beneficiary_cuit,
-            y.holder_name AS beneficiary_holder_name,
-            y.holder_type AS beneficiary_holder_type,
-            y.bank_code AS beneficiary_bank_code,
-            y.branch_code AS beneficiary_branch_code
-        FROM transactions t
-        JOIN accounts b ON t.benefactor_id = b.id
-        JOIN accounts y ON t.beneficiary_id = y.id
-    """);
-
-        StringBuilder countSql = new StringBuilder("""
-        SELECT COUNT(*)
-        FROM transactions t
-    """);
+        QueryParts queryParts = baseQuery();
 
         boolean joinIngestedFiles =
                 listTransactionsQuery.filterCommon().ingestionDateFrom() != null ||
                         listTransactionsQuery.filterCommon().ingestionDateTo() != null;
 
         if (joinIngestedFiles) {
-            sql.append(" JOIN ingested_files f ON t.file_id = f.id ");
-            countSql.append(" JOIN ingested_files f ON t.file_id = f.id ");
+            queryParts.sql.append(" JOIN ingested_files f ON t.file_id = f.id ");
+            queryParts.countSql.append(" JOIN ingested_files f ON t.file_id = f.id ");
         }
 
-        sql.append(" WHERE 1=1 ");
-        countSql.append(" WHERE 1=1 ");
+        queryParts.sql.append(" WHERE 1=1 ");
+        queryParts.countSql.append(" WHERE 1=1 ");
 
         List<Object> params = new ArrayList<>();
         List<Object> countParams = new ArrayList<>();
 
         if (listTransactionsQuery.filterCommon().txDateFrom() != null) {
-            sql.append(" AND t.transaction_at >= ?");
-            countSql.append(" AND t.transaction_at >= ?");
+            queryParts.sql.append(" AND t.transaction_at >= ?");
+            queryParts.countSql.append(" AND t.transaction_at >= ?");
             params.add(listTransactionsQuery.filterCommon().txDateFrom());
             countParams.add(listTransactionsQuery.filterCommon().txDateFrom());
         }
 
         if (listTransactionsQuery.filterCommon().txDateTo() != null) {
-            sql.append(" AND t.transaction_at <= ?");
-            countSql.append(" AND t.transaction_at <= ?");
+            queryParts.sql.append(" AND t.transaction_at <= ?");
+            queryParts.countSql.append(" AND t.transaction_at <= ?");
             params.add(listTransactionsQuery.filterCommon().txDateTo());
             countParams.add(listTransactionsQuery.filterCommon().txDateTo());
         }
 
         if (listTransactionsQuery.filterCommon().ingestionDateFrom() != null) {
-            sql.append(" AND f.processed_at >= ?");
-            countSql.append(" AND f.processed_at >= ?");
+            queryParts.sql.append(" AND f.processed_at >= ?");
+            queryParts.countSql.append(" AND f.processed_at >= ?");
             params.add(listTransactionsQuery.filterCommon().ingestionDateFrom());
             countParams.add(listTransactionsQuery.filterCommon().ingestionDateFrom());
         }
 
         if (listTransactionsQuery.filterCommon().ingestionDateTo() != null) {
-            sql.append(" AND f.processed_at <= ?");
-            countSql.append(" AND f.processed_at <= ?");
+            queryParts.sql.append(" AND f.processed_at <= ?");
+            queryParts.countSql.append(" AND f.processed_at <= ?");
             params.add(listTransactionsQuery.filterCommon().ingestionDateTo());
             countParams.add(listTransactionsQuery.filterCommon().ingestionDateTo());
         }
 
         if (listTransactionsQuery.transactionType() != null) {
-            sql.append(" AND t.type = ?");
-            countSql.append(" AND t.type = ?");
+            queryParts.sql.append(" AND t.type = ?");
+            queryParts.countSql.append(" AND t.type = ?");
             params.add(listTransactionsQuery.transactionType().name());
             countParams.add(listTransactionsQuery.transactionType().name());
         }
 
         if (listTransactionsQuery.transactionStatus() != null) {
-            sql.append(" AND t.status = ?");
-            countSql.append(" AND t.status = ?");
+            queryParts.sql.append(" AND t.status = ?");
+            queryParts.countSql.append(" AND t.status = ?");
             params.add(listTransactionsQuery.transactionStatus().name());
             countParams.add(listTransactionsQuery.transactionStatus().name());
         }
 
         if (listTransactionsQuery.currency() != null) {
-            sql.append(" AND t.currency = ?");
-            countSql.append(" AND t.currency = ?");
+            queryParts.sql.append(" AND t.currency = ?");
+            queryParts.countSql.append(" AND t.currency = ?");
             params.add(listTransactionsQuery.currency());
             countParams.add(listTransactionsQuery.currency());
         }
 
         if (listTransactionsQuery.amountMin() != null) {
-            sql.append(" AND t.amount >= ?");
-            countSql.append(" AND t.amount >= ?");
+            queryParts.sql.append(" AND t.amount >= ?");
+            queryParts.countSql.append(" AND t.amount >= ?");
             params.add(listTransactionsQuery.amountMin());
             countParams.add(listTransactionsQuery.amountMin());
         }
 
         if (listTransactionsQuery.amountMax() != null) {
-            sql.append(" AND t.amount <= ?");
-            countSql.append(" AND t.amount <= ?");
+            queryParts.sql.append(" AND t.amount <= ?");
+            queryParts.countSql.append(" AND t.amount <= ?");
             params.add(listTransactionsQuery.amountMax());
             countParams.add(listTransactionsQuery.amountMax());
         }
 
-        sql.append(" ORDER BY t.transaction_at DESC LIMIT ? OFFSET ?");
+        queryParts.sql.append(buildOrderBy(listTransactionsQuery.filterCommon().sort()));
+        queryParts.sql.append(" LIMIT ? OFFSET ?");
 
         int page = listTransactionsQuery.filterCommon().page();
         int size = listTransactionsQuery.filterCommon().size();
@@ -262,7 +222,7 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
 
         try (Connection conn = dataSource.getConnection()) {
 
-            try (PreparedStatement countStmt = conn.prepareStatement(countSql.toString())) {
+            try (PreparedStatement countStmt = conn.prepareStatement(queryParts.countSql.toString())) {
                 for (int i = 0; i < countParams.size(); i++) {
                     countStmt.setObject(i + 1, countParams.get(i));
                 }
@@ -274,7 +234,7 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
                 }
             }
 
-            try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            try (PreparedStatement stmt = conn.prepareStatement(queryParts.sql.toString())) {
                 int index = 1;
                 for (Object param : params) {
                     stmt.setObject(index++, param);
@@ -456,6 +416,73 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
         );
     }
 
+    private QueryParts baseQuery(){
+        QueryParts queryParts = new QueryParts();
+
+        queryParts.sql = new StringBuilder("""
+         SELECT
+            t.id,
+            t.external_ref,
+            t.transaction_at,
+            t.ingested_at,
+            t.type,
+            t.status,
+            t.amount,
+            t.currency,
+            t.description,
+            t.file_id,
+            t.created_by,
+            t.flagged,
+            t.flag_reason,
+
+            b.id AS benefactor_id,
+            b.account_number AS benefactor_account_number,
+            b.cbu AS benefactor_cbu,
+            b.cuit AS benefactor_cuit,
+            b.holder_name AS benefactor_holder_name,
+            b.holder_type AS benefactor_holder_type,
+            b.bank_code AS benefactor_bank_code,
+            b.branch_code AS benefactor_branch_code,
+
+            y.id AS beneficiary_id,
+            y.account_number AS beneficiary_account_number,
+            y.cbu AS beneficiary_cbu,
+            y.cuit AS beneficiary_cuit,
+            y.holder_name AS beneficiary_holder_name,
+            y.holder_type AS beneficiary_holder_type,
+            y.bank_code AS beneficiary_bank_code,
+            y.branch_code AS beneficiary_branch_code
+         FROM transactions t
+         JOIN accounts b ON t.benefactor_id = b.id
+         JOIN accounts y ON t.beneficiary_id = y.id
+         """);
+
+        queryParts.countSql = new StringBuilder("""
+         SELECT COUNT(*)
+         FROM transactions t""");
+
+        return queryParts;
+    }
+
+    private String buildOrderBy(String sort) {
+        String defaultField = "transactionAt";
+        String defaultDirection = "desc";
+
+        if (sort == null || sort.isBlank()) {
+            return " ORDER BY " + resolveGroupByColumn(defaultField) + " " + defaultDirection;
+        }
+
+        String[] parts = sort.split(",");
+        String field = parts.length > 0 ? parts[0].trim() : defaultField;
+        String direction = parts.length > 1 ? parts[1].trim().toLowerCase() : defaultDirection;
+
+        if (!direction.equals("asc") && !direction.equals("desc")) {
+            direction = defaultDirection;
+        }
+
+        return " ORDER BY " + resolveGroupByColumn(field) + " " + direction;
+    }
+
     private String resolveGroupByColumn(String groupBy) {
         if (groupBy == null || groupBy.isBlank()) {
             return "t.status";
@@ -467,6 +494,7 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
             case "currency" -> "t.currency";
             case "created_by" -> "t.created_by";
             case "flagged" -> "t.flagged";
+            case "transactionat" ->  "t.transaction_at";
             default -> throw new IllegalArgumentException("Invalid groupBy: " + groupBy);
         };
     }

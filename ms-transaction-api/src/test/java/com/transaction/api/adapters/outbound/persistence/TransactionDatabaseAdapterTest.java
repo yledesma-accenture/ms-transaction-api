@@ -23,7 +23,7 @@ class TransactionDatabaseAdapterTest {
     @Test
     void shouldSearchTransactionByUser() {
         SearchTransactionByUserQuery query =
-                new SearchTransactionByUserQuery("system", new FilterCommon(LocalDate.now(), LocalDate.now(), LocalDate.now(), LocalDate.now(),0,10, "asc"));
+                new SearchTransactionByUserQuery("system", new FilterCommon(null, null, null, null,0,10, null));
 
         TransactionPage result = adapter.searchTransactionByUser(query);
 
@@ -38,6 +38,27 @@ class TransactionDatabaseAdapterTest {
         assertNotNull(tx.benefactor());
         assertNotNull(tx.beneficiary());
         assertEquals("Juan Perez", tx.benefactor().holderName());
+        assertEquals("Maria Gomez", tx.beneficiary().holderName());
+    }
+
+    @Test
+    void shouldSearchTransactionByUserAndTxDateFromFilter() {
+        SearchTransactionByUserQuery query =
+                new SearchTransactionByUserQuery("admin", new FilterCommon(null, LocalDate.of(2026, 04, 07), null, null,0,10, null));
+
+        TransactionPage result = adapter.searchTransactionByUser(query);
+
+        assertNotNull(result);
+        assertEquals(3, result.totalElements());
+        assertEquals(3, result.content().size());
+        assertEquals(1, result.totalPages());
+        assertTrue(result.last());
+
+        Transaction tx = result.content().get(0);
+        assertEquals("EXT-0015", tx.externalRef());
+        assertNotNull(tx.benefactor());
+        assertNotNull(tx.beneficiary());
+        assertEquals("Servicios Globales SRL", tx.benefactor().holderName());
         assertEquals("Maria Gomez", tx.beneficiary().holderName());
     }
 
