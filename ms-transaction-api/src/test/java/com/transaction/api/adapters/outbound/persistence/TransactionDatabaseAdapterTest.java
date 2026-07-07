@@ -208,4 +208,31 @@ class TransactionDatabaseAdapterTest {
 
         assertEquals(8, completed.count());
     }
+
+    @Test
+    void shouldGetSummaryGroupedByStatusWithDateTxFilter() {
+        SummaryQuery query = new SummaryQuery(
+                LocalDate.of(2026, 01, 04),
+                LocalDate.of(2026, 01, 07),
+                null,
+                null,
+                "status"
+        );
+
+        TransactionSummary result = adapter.getSummary(query);
+
+        assertNotNull(result);
+        assertEquals("status", result.groupedBy());
+        assertEquals(6, result.totalCount());
+        assertNotNull(result.totalAmount());
+        assertNotNull(result.groups());
+        assertFalse(result.groups().isEmpty());
+
+        TransactionSummaryGroup completed = result.groups().stream()
+                .filter(group -> "COMPLETED".equals(group.key()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(3, completed.count());
+    }
 }
