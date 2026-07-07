@@ -3,59 +3,61 @@ package com.transaction.api.domain.services;
 import com.transaction.api.adapters.model.*;
 import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.infrastructure.ITransactionDatabasePort;
-import org.junit.jupiter.api.BeforeEach;
 import com.transaction.api.domain.model.Transaction;
 import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
 import com.transaction.api.domain.model.ValidationWarning;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
 
+    @InjectMocks
     private TransactionService service;
-    private ITransactionDatabasePort databasePort;
-    @BeforeEach
-    void setUp() {
-        databasePort = mock(ITransactionDatabasePort.class);
-        service = new TransactionService(databasePort);
 
-        // Configurar el mock para transactionId
-        UUID expectedId = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
-        OffsetDateTime createdAt = OffsetDateTime.parse("2026-06-29T19:35:04.387Z");
+    @Mock
+    private ITransactionDatabasePort transactionDatabasePort;
 
-        Transaction tx = new Transaction(
-                expectedId, "TNX-2024-000001", createdAt, createdAt, "DEBIT", "COMPLETED",
+    @Test
+    void transactionIdReturnsDetailWithExpectedFields() {
+        UUID transactionId = UUID.fromString("bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1");
+
+        Transaction transaction = new Transaction(
+                transactionId, "TNX-2024-000001", OffsetDateTime.parse("2026-06-29T19:35:04.387Z"), OffsetDateTime.parse("2026-06-29T19:35:04.387Z"), "DEBIT", "COMPLETED",
                 250, "USD",
                 new Party(UUID.randomUUID(), "ACC-00123", "0170099220000067797370", "20329851657", "Alice Martinez", "PERSON", "001", "ACC-00123"),
                 new Party(UUID.randomUUID(), "ACC-00123", "0170099220000067797371", "20329851658", "Bob Smith", "PERSON", "001", "0002"),
-                "Test transaction", UUID.randomUUID(), "system", true, null
+                "Test transaction", UUID.randomUUID(), "system", true, null);
+
+        TransactionDetail expected = new TransactionDetail(
+                transaction, OffsetDateTime.parse("2026-06-29T19:35:04.387Z"), OffsetDateTime.parse("2026-06-29T19:35:04.387Z"),
+                List.of(new ValidationWarning(transactionId,"MISSING_DESCRIPTION","MISSING_DESCRIPTION", OffsetDateTime.parse("2026-06-29T19:35:04.387Z")))
         );
 
-        TransactionDetail detail = new TransactionDetail(
-                tx, createdAt, createdAt, List.of(new ValidationWarning(expectedId,"MISSING_DESCRIPTION","MISSING_DESCRIPTION", createdAt))
-        );
+        when(transactionDatabasePort.findById(String.valueOf(transactionId))).thenReturn(Optional.of(expected));
 
-        when(databasePort.findById(expectedId.toString())).thenReturn(java.util.Optional.of(detail));
-    }
-    @Test
-    void transactionIdReturnsDetailWithExpectedFields() {
-        UUID expectedId = UUID.fromString("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+        TransactionDetail detail = service.transactionId("bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1");
 
-        TransactionDetail detail = service.transactionId(expectedId.toString());
         assertNotNull(detail, "TransactionDetail should not be null");
 
         Transaction tx = detail.transaction();
         assertNotNull(tx, "Transaction should not be null");
-        assertEquals(expectedId, tx.id());
+        assertEquals(transactionId, tx.id());
         assertEquals("TNX-2024-000001", tx.externalRef());
         assertEquals(250, tx.amount());
         assertEquals("USD", tx.currency());
@@ -78,56 +80,53 @@ class TransactionServiceTest {
 
     @Test
     void shouldSearchTransactionByUser() {
-        FilterCommon filterCommon = mock(FilterCommon.class);
         SearchTransactionByUserQuery query = mock(SearchTransactionByUserQuery.class);
 
-        when(query.filterCommon()).thenReturn(filterCommon);
-        when(filterCommon.page()).thenReturn(0);
-        when(filterCommon.size()).thenReturn(10);
+        TransactionPage expected = new TransactionPage(
+                List.of(), 0, 10, 0, 0, true
+        );
+
+        when(transactionDatabasePort.searchTransactionByUser(query)).thenReturn(expected);
 
         TransactionPage result = service.searchTransactionByUser(query);
 
         assertNotNull(result);
+        assertEquals(expected, result);
+        verify(transactionDatabasePort).searchTransactionByUser(query);
     }
 
     @Test
     void shouldReturnListTransaction() {
-        FilterCommon filterCommon = mock(FilterCommon.class);
         ListTransactionsQuery query = mock(ListTransactionsQuery.class);
 
-        when(query.filterCommon()).thenReturn(filterCommon);
-        when(filterCommon.page()).thenReturn(0);
-        when(filterCommon.size()).thenReturn(10);
+        TransactionPage expected = new TransactionPage(
+                List.of(), 0, 10, 0, 0, true
+        );
+
+        when(transactionDatabasePort.listTransaction(query)).thenReturn(expected);
 
         TransactionPage result = service.listTransaction(query);
 
         assertNotNull(result);
-        assertNotNull(result.content());
-        assertEquals(1, result.content().size(), "Service returns one dummy transaction");
-        assertEquals(1L, result.totalElements());
-        assertEquals(1, result.totalPages());
-        assertTrue(result.last());
-        assertEquals(0, result.page());
-        assertEquals(10, result.size());
+        assertEquals(expected, result);
+        verify(transactionDatabasePort).listTransaction(query);
     }
 
     @Test
     void shouldReturnSummary() {
         SummaryQuery query = mock(SummaryQuery.class);
 
-        when(query.txDateFrom()).thenReturn(LocalDate.of(2024, Month.JANUARY, 1));
-        when(query.txDateTo()).thenReturn(LocalDate.of(2024, Month.JANUARY, 31));
-        when(query.ingestionDateFrom()).thenReturn(LocalDate.of(2024, Month.FEBRUARY, 1));
-        when(query.ingestionDateTo()).thenReturn(LocalDate.of(2024, Month.FEBRUARY, 29));
-        when(query.groupBy()).thenReturn("STATUS");
+        TransactionSummary expected = new TransactionSummary(null, null, null, null,
+                0, BigDecimal.ZERO, "type", List.of());
+
+        when(transactionDatabasePort.getSummary(query)).thenReturn(expected);
 
         TransactionSummary result = service.getSummary(query);
 
         assertNotNull(result);
+        assertEquals(expected, result);
+        verify(transactionDatabasePort).getSummary(query);
     }
-
-
-
 
     @Test
     void transactionCbuReturnsTransactionPageWhenFound() {
@@ -155,7 +154,7 @@ class TransactionServiceTest {
                 true
         );
 
-        when(databasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.of(expectedPage));
+        when(transactionDatabasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.of(expectedPage));
 
         TransactionPage result = service.transactionCbu(cbu, query);
 
@@ -166,7 +165,7 @@ class TransactionServiceTest {
         assertEquals(10, result.size());
         assertTrue(result.last());
         assertEquals(txId, result.content().get(0).id());
-        verify(databasePort).transactionCbu(cbu, query);
+        verify(transactionDatabasePort).transactionCbu(cbu, query);
     }
 
     @Test
@@ -175,14 +174,14 @@ class TransactionServiceTest {
         FilterCommon filterCommon = new FilterCommon(null, null, null, null, 0, 10, "transactionAt,desc");
         SearchTransactionByCbuQuery query = new SearchTransactionByCbuQuery(cbu, filterCommon);
 
-        when(databasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.empty());
+        when(transactionDatabasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.empty());
 
         assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
                 () -> service.transactionCbu(cbu, query)
         );
 
-        verify(databasePort).transactionCbu(cbu, query);
+        verify(transactionDatabasePort).transactionCbu(cbu, query);
     }
 
     @Test
@@ -218,7 +217,7 @@ class TransactionServiceTest {
                 true
         );
 
-        when(databasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.of(expectedPage));
+        when(transactionDatabasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.of(expectedPage));
 
         TransactionPage result = service.transactionCbu(cbu, query);
 
@@ -255,7 +254,7 @@ class TransactionServiceTest {
                 false
         );
 
-        when(databasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.of(expectedPage));
+        when(transactionDatabasePort.transactionCbu(cbu, query)).thenReturn(java.util.Optional.of(expectedPage));
 
         TransactionPage result = service.transactionCbu(cbu, query);
 
@@ -294,7 +293,7 @@ class TransactionServiceTest {
                 true
         );
 
-        when(databasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
+        when(transactionDatabasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
 
         TransactionPage result = service.transactionCuit(cuit, query);
 
@@ -305,7 +304,7 @@ class TransactionServiceTest {
         assertEquals(10, result.size());
         assertTrue(result.last());
         assertEquals(txId, result.content().get(0).id());
-        verify(databasePort).transactionCuit(cuit, query);
+        verify(transactionDatabasePort).transactionCuit(cuit, query);
     }
 
     @Test
@@ -314,14 +313,14 @@ class TransactionServiceTest {
         FilterCommon filterCommon = new FilterCommon(null, null, null, null, 0, 10, "transactionAt,desc");
         SearchTransactionByCuitQuery query = new SearchTransactionByCuitQuery(cuit, filterCommon);
 
-        when(databasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.empty());
+        when(transactionDatabasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.empty());
 
         assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
                 () -> service.transactionCuit(cuit, query)
         );
 
-        verify(databasePort).transactionCuit(cuit, query);
+        verify(transactionDatabasePort).transactionCuit(cuit, query);
     }
 
     @Test
@@ -364,7 +363,7 @@ class TransactionServiceTest {
                 true
         );
 
-        when(databasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
+        when(transactionDatabasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
 
         TransactionPage result = service.transactionCuit(cuit, query);
 
@@ -404,7 +403,7 @@ class TransactionServiceTest {
                 false
         );
 
-        when(databasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
+        when(transactionDatabasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
 
         TransactionPage result = service.transactionCuit(cuit, query);
 
@@ -432,7 +431,7 @@ class TransactionServiceTest {
                 true
         );
 
-        when(databasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
+        when(transactionDatabasePort.transactionCuit(cuit, query)).thenReturn(java.util.Optional.of(expectedPage));
 
         TransactionPage result = service.transactionCuit(cuit, query);
 
@@ -447,7 +446,7 @@ class TransactionServiceTest {
     void transactionIdThrowsNotFoundExceptionWhenTransactionDoesNotExist() {
         String nonExistentId = UUID.randomUUID().toString();
 
-        when(databasePort.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
+        when(transactionDatabasePort.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
 
         org.springframework.web.server.ResponseStatusException ex = assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
@@ -456,7 +455,7 @@ class TransactionServiceTest {
 
         assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, ex.getStatusCode());
         assertEquals("Transacción no encontrada", ex.getReason());
-        verify(databasePort).findById(nonExistentId);
+        verify(transactionDatabasePort).findById(nonExistentId);
     }
 
     @Test
@@ -480,7 +479,7 @@ class TransactionServiceTest {
 
         TransactionDetail detail = new TransactionDetail(tx, now, now, warnings);
 
-        when(databasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
+        when(transactionDatabasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
 
         TransactionDetail result = service.transactionId(txId.toString());
 
@@ -490,7 +489,7 @@ class TransactionServiceTest {
         assertEquals("MISSING_DESCRIPTION", result.validationWarnings().get(0).warningCode());
         assertEquals("HIGH_AMOUNT", result.validationWarnings().get(1).warningCode());
         assertEquals("SUSPICIOUS_PATTERN", result.validationWarnings().get(2).warningCode());
-        verify(databasePort).findById(txId.toString());
+        verify(transactionDatabasePort).findById(txId.toString());
     }
 
     @Test
@@ -508,14 +507,14 @@ class TransactionServiceTest {
 
         TransactionDetail detail = new TransactionDetail(tx, now, now, List.of());
 
-        when(databasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
+        when(transactionDatabasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
 
         TransactionDetail result = service.transactionId(txId.toString());
 
         assertNotNull(result);
         assertNotNull(result.validationWarnings());
         assertTrue(result.validationWarnings().isEmpty());
-        verify(databasePort).findById(txId.toString());
+        verify(transactionDatabasePort).findById(txId.toString());
     }
 
     @Test
@@ -557,7 +556,7 @@ class TransactionServiceTest {
 
         TransactionDetail detail = new TransactionDetail(tx, now, now, List.of());
 
-        when(databasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
+        when(transactionDatabasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
 
         TransactionDetail result = service.transactionId(txId.toString());
 
@@ -589,7 +588,7 @@ class TransactionServiceTest {
 
         TransactionDetail detail = new TransactionDetail(tx, now, now, List.of());
 
-        when(databasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
+        when(transactionDatabasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
 
         TransactionDetail result = service.transactionId(txId.toString());
 
@@ -619,7 +618,7 @@ class TransactionServiceTest {
 
         TransactionDetail detail = new TransactionDetail(tx, createdAt, updatedAt, List.of());
 
-        when(databasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
+        when(transactionDatabasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
 
         TransactionDetail result = service.transactionId(txId.toString());
 
@@ -657,7 +656,7 @@ class TransactionServiceTest {
 
         TransactionDetail detail = new TransactionDetail(tx, now, now, List.of());
 
-        when(databasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
+        when(transactionDatabasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
 
         TransactionDetail result = service.transactionId(txId.toString());
 
@@ -680,11 +679,11 @@ class TransactionServiceTest {
 
         TransactionDetail detail = new TransactionDetail(tx, now, now, List.of());
 
-        when(databasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
+        when(transactionDatabasePort.findById(txId.toString())).thenReturn(java.util.Optional.of(detail));
 
         service.transactionId(txId.toString());
 
-        verify(databasePort, times(1)).findById(txId.toString());
+        verify(transactionDatabasePort, times(1)).findById(txId.toString());
     }
 
 }

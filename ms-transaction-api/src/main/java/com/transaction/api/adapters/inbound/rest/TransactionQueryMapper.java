@@ -14,7 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class TransactionQueryMapper {
     public SearchTransactionByUserQuery toSearchTransactionByUserQuery(String userId, TransactionFilterRequest request) {
         return SearchTransactionByUserQuery.builder()
-                .userId(Long.valueOf(userId))
+                .userId(userId)
                 .filterCommon(toTransactionFilterCommon(request))
                 .build();
     }

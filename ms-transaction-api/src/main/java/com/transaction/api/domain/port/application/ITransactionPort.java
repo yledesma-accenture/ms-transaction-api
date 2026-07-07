@@ -5,6 +5,7 @@ import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
 import com.transaction.api.domain.model.TransactionSummary;
 
+import java.util.UUID;
 
 
 public interface ITransactionPort {

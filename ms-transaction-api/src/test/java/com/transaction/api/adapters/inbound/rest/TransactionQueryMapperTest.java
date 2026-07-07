@@ -107,7 +107,7 @@ class TransactionQueryMapperTest {
         var result = mapper.toSearchTransactionByUserQuery(userId, request);
 
         assertNotNull(result);
-        assertEquals(12345L, result.userId());
+        assertEquals(String.valueOf(12345), result.userId());
         assertNotNull(result.filterCommon());
         assertEquals(1, result.filterCommon().page());
         assertEquals(15, result.filterCommon().size());
@@ -124,20 +124,10 @@ class TransactionQueryMapperTest {
         var result = mapper.toSearchTransactionByUserQuery(userId, request);
 
         assertNotNull(result);
-        assertEquals(999L, result.userId());
+        assertEquals(String.valueOf(999), result.userId());
         assertEquals(0, result.filterCommon().page());
         assertEquals(20, result.filterCommon().size());
         assertEquals("transaction_At,desc", result.filterCommon().sort());
-    }
-
-    @Test
-    void toSearchTransactionByUserQueryWithInvalidUserId() {
-        String userId = "invalid-id";
-        TransactionFilterRequest request = new TransactionFilterRequest(null, null, null, null, 0, 10, null);
-
-        assertThrows(NumberFormatException.class, () ->
-                        mapper.toSearchTransactionByUserQuery(userId, request),
-                "Robinson");
     }
 
     @Test
@@ -152,7 +142,7 @@ class TransactionQueryMapperTest {
         var result = mapper.toSearchTransactionByUserQuery(userId, request);
 
         assertNotNull(result);
-        assertEquals(777L, result.userId());
+        assertEquals(String.valueOf(777), result.userId());
         assertEquals(txDateFrom, result.filterCommon().txDateFrom());
         assertNull(result.filterCommon().txDateTo());
         assertEquals(2, result.filterCommon().page());
