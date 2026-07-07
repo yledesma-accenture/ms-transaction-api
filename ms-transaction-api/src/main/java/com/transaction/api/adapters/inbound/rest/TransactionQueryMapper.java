@@ -3,10 +3,7 @@ package com.transaction.api.adapters.inbound.rest;
 import com.transaction.api.adapters.inbound.dto.ListTransactionRequest;
 import com.transaction.api.adapters.inbound.dto.SummaryRequest;
 import com.transaction.api.adapters.inbound.dto.TransactionFilterRequest;
-import com.transaction.api.adapters.model.FilterCommon;
-import com.transaction.api.adapters.model.ListTransactionsQuery;
-import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
-import com.transaction.api.adapters.model.SummaryQuery;
+import com.transaction.api.adapters.model.*;
 import com.transaction.api.domain.model.TransactionStatus;
 import com.transaction.api.domain.model.TransactionType;
 import org.springframework.http.HttpStatus;
@@ -18,6 +15,20 @@ public class TransactionQueryMapper {
     public SearchTransactionByUserQuery toSearchTransactionByUserQuery(String userId, TransactionFilterRequest request) {
         return SearchTransactionByUserQuery.builder()
                 .userId(Long.valueOf(userId))
+                .filterCommon(toTransactionFilterCommon(request))
+                .build();
+    }
+
+    public SearchTransactionByCbuQuery toSearchTransactionByCbuQuery(String cbu, TransactionFilterRequest request) {
+        return SearchTransactionByCbuQuery.builder()
+                .cbu(cbu)
+                .filterCommon(toTransactionFilterCommon(request))
+                .build();
+    }
+
+    public SearchTransactionByCuitQuery toSearchTransactionByCuitQuery(String cuit, TransactionFilterRequest request) {
+        return SearchTransactionByCuitQuery.builder()
+                .cuit(cuit)
                 .filterCommon(toTransactionFilterCommon(request))
                 .build();
     }
@@ -62,7 +73,7 @@ public class TransactionQueryMapper {
                 .ingestionDateTo(request.ingestionDateTo())
                 .page(request.page() != null ? request.page() : 0)
                 .size(request.size() != null ? request.size() : 20)
-                .sort(request.sort() != null ? request.sort() : "transactionAt,desc")
+                .sort(request.sort() != null ? request.sort() : "transaction_At,desc")
                 .build();
     }
 

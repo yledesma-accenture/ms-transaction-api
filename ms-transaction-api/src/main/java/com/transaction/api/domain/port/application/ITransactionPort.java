@@ -1,14 +1,10 @@
 package com.transaction.api.domain.port.application;
 
-import com.transaction.api.adapters.model.ListTransactionsQuery;
-import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
-import com.transaction.api.adapters.model.SummaryQuery;
+import com.transaction.api.adapters.model.*;
 import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
 import com.transaction.api.domain.model.TransactionSummary;
 
-
-import java.time.LocalDate;
 
 
 public interface ITransactionPort {
@@ -18,11 +14,9 @@ public interface ITransactionPort {
     TransactionSummary getSummary(SummaryQuery summaryQuery);
 
 
-    TransactionPage transactionCbu(String cbu, LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom,
-                                       LocalDate ingestionDateTo, int page, int size, String sort);
+    TransactionPage transactionCbu(String cbu, SearchTransactionByCbuQuery searchTransactionByCbuQuery);
 
 
-    TransactionPage transactionCuit(String cuit, LocalDate txDateFrom, LocalDate txDateTo, LocalDate ingestionDateFrom,
-                     LocalDate ingestionDateTo, int page, int size, String sort);
+    TransactionPage transactionCuit(String cuit, SearchTransactionByCuitQuery searchTransactionByCuitQuery);
 
 }
