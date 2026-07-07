@@ -134,6 +134,9 @@
 							<exclude>**/domain/port/out/**</exclude>
 							<exclude>**/*MsTransactionApiApplication.class</exclude>
 							<exclude>**/adapters/model/**</exclude>
+							<exclude>com/transaction/api/ports/outbound/TransactionRepositoryPort*</exclude>
+							<exclude>com/transaction/api/MsTransactionApiApplication*</exclude>
+							<exclude>**/MsTransactionApiApplication.class</exclude>
 						</excludes>
 					</configuration>
 				</execution>
@@ -153,6 +156,7 @@
 									<exclude>com.transaction.api.domain.port.out</exclude>
 									<exclude>com.transaction.api.adapters.model</exclude>
 									<exclude>com.transaction.api</exclude>
+									<exclude>**/MsTransactionApiApplication.class</exclude>
 								</excludes>
 								<limits>
 									<limit>

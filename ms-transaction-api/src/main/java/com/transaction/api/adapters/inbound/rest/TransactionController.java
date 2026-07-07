@@ -3,18 +3,13 @@ package com.transaction.api.adapters.inbound.rest;
 import com.transaction.api.adapters.inbound.dto.ListTransactionRequest;
 import com.transaction.api.adapters.inbound.dto.SummaryRequest;
 import com.transaction.api.adapters.inbound.dto.TransactionFilterRequest;
-import com.transaction.api.adapters.model.ListTransactionsQuery;
-import com.transaction.api.adapters.model.SearchTransactionByUserQuery;
-import com.transaction.api.adapters.model.SummaryQuery;
+import com.transaction.api.adapters.model.*;
 import com.transaction.api.domain.model.*;
 import com.transaction.api.domain.port.application.ITransactionPort;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-
-import java.time.LocalDate;
 
 
 @Slf4j
@@ -39,29 +34,22 @@ public class TransactionController {
 
     @GetMapping("/search/cbu/{cbu}")
     public ResponseEntity<TransactionPage> transactionCbu(@PathVariable  String cbu,
-                                            @RequestParam(required=false) LocalDate txDateFrom,
-                                            @RequestParam(required=false) LocalDate txDateTo,
-                                            @RequestParam(required=false) LocalDate ingestionDateFrom,
-                                            @RequestParam(required=false) LocalDate ingestionDateTo,
-                                            @RequestParam(defaultValue = "0") int page,
-                                            @RequestParam(defaultValue = "20") int size,
-                                            @RequestParam(defaultValue = "transactionAt,desc") String sort) throws BadRequestException {
+                                                          @ModelAttribute TransactionFilterRequest request) throws BadRequestException {
         log.info("/api/v1/transactions/search/cbu");
-        TransactionPage transactionPage = transactionPort.transactionCbu(cbu,txDateFrom,txDateTo,ingestionDateFrom,ingestionDateTo,page,size,sort);
+        SearchTransactionByCbuQuery searchTransactionByCbuQuery = mapper.toSearchTransactionByCbuQuery(cbu, request);
+
+        TransactionPage transactionPage = transactionPort.transactionCbu(cbu,searchTransactionByCbuQuery);
         return ResponseEntity.ok(transactionPage);
     }
 
     @GetMapping("/search/cuit/{cuit}")
     public ResponseEntity<TransactionPage> transactionCuit(@PathVariable String cuit,
-                                             @RequestParam(required=false) LocalDate txDateFrom,
-                                             @RequestParam(required=false) LocalDate txDateTo,
-                                             @RequestParam(required=false) LocalDate ingestionDateFrom,
-                                             @RequestParam(required=false) LocalDate ingestionDateTo,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(defaultValue = "20") int size,
-                                             @RequestParam(defaultValue = "transactionAt,desc") String sort) throws BadRequestException {
+                                                           @ModelAttribute TransactionFilterRequest request) throws BadRequestException {
         log.info("/api/v1/transactions/search/cuit/");
-        TransactionPage transactionPage = transactionPort.transactionCuit(cuit,txDateFrom,txDateTo,ingestionDateFrom,ingestionDateTo,page,size,sort);
+
+        SearchTransactionByCuitQuery searchTransactionByCuitQuery = mapper.toSearchTransactionByCuitQuery(cuit, request);
+
+        TransactionPage transactionPage = transactionPort.transactionCuit(cuit,searchTransactionByCuitQuery);
         return ResponseEntity.ok(transactionPage);
     }
 
