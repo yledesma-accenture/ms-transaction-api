@@ -64,7 +64,9 @@ VALUES
     ('bbbbbb42-bbbb-bbbb-bbbb-bbbbbbbbbbb2', 'EXT-0042', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'PAYMENT', 'COMPLETED', 145000.00, 'ARS', '55555555-5555-5555-5555-555555555555', '44444444-4444-4444-4444-444444444444', 'Pago final contrato', 'aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'system', FALSE, NULL),
     ('bbbbbb43-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 'EXT-0043', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'CREDIT', 'COMPLETED', 32000.00, 'ARS', '44444444-4444-4444-4444-444444444444', '33333333-3333-3333-3333-333333333333', 'Acreditación empresa', 'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'system', FALSE, NULL),
     ('bbbbbb44-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'EXT-0044', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'DEBIT', 'COMPLETED', 5100.00, 'ARS', '11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444', 'Débito recibido empresa', 'aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'system', FALSE, NULL),
-    ('bbbbbb45-bbbb-bbbb-bbbb-bbbbbbbbbbb5', 'EXT-0045', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'REFUND', 'COMPLETED', 3300.50, 'ARS', '22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444444', 'Reembolso extra', 'aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'system', FALSE, NULL);
+    ('bbbbbb45-bbbb-bbbb-bbbb-bbbbbbbbbbb5', 'EXT-0045', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'REFUND', 'COMPLETED', 3300.50, 'ARS', '22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444444', 'Reembolso extra', 'aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'system', FALSE, NULL),
+    ('bbbbbb46-bbbb-bbbb-bbbb-bbbbbbbbbb46', 'EXT-0046', TIMESTAMP WITH TIME ZONE '2026-01-10 14:30:00+00:00', TIMESTAMP WITH TIME ZONE '2026-01-10 14:35:00+00:00', 'DEBIT', 'COMPLETED', 1234.99, 'EUR','44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'Débito corporativo','aaaaaaa5-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 'system', TRUE, 'Monto elevado');
+;
 
 -- TRANSACTION VALIDATION WARNINGS
 INSERT INTO transaction_validation_warnings (id, transaction_id, warning_code, warning_message)

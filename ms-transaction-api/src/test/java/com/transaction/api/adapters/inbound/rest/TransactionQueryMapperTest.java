@@ -3,14 +3,16 @@ package com.transaction.api.adapters.inbound.rest;
 import com.transaction.api.adapters.inbound.dto.ListTransactionRequest;
 import com.transaction.api.adapters.inbound.dto.SummaryRequest;
 import com.transaction.api.adapters.inbound.dto.TransactionFilterRequest;
+import com.transaction.api.adapters.inbound.rest.validator.RequestValidator;
 import com.transaction.api.adapters.model.ListTransactionsQuery;
 import com.transaction.api.adapters.model.SummaryQuery;
 import com.transaction.api.domain.model.TransactionStatus;
 import com.transaction.api.domain.model.TransactionType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,13 +20,18 @@ import java.time.Month;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 class TransactionQueryMapperTest {
+    @Mock
+    private RequestValidator requestValidator;
+
     private TransactionQueryMapper mapper;
 
     @BeforeEach
     void setUp() {
-        mapper = new TransactionQueryMapper();
+        mapper = new TransactionQueryMapper(requestValidator);
     }
 
     @Test
@@ -38,48 +45,17 @@ class TransactionQueryMapperTest {
 
         ListTransactionsQuery result = mapper.toListTransactionQuery(request);
 
+        verify(requestValidator).validate(null, null, null, null, request.type(), request.status());
+
         assertEquals(TransactionType.DEBIT, result.transactionType());
         assertEquals(TransactionStatus.PENDING, result.transactionStatus());
         assertEquals("USD", result.currency());
         assertEquals(BigDecimal.ONE, result.amountMin());
         assertEquals(BigDecimal.TEN, result.amountMax());
+        assertEquals(0, result.filterCommon().page());
+        assertEquals(20, result.filterCommon().size());
+        assertEquals("transactionAt,desc", result.filterCommon().sort());
         assertEquals(true, result.flagged());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenTransactionStatusIsInvalid() {
-        ListTransactionRequest request = new ListTransactionRequest(
-                null, null, null, null,
-                "DEBIT", "INVALID_STATUS", "USD",
-                BigDecimal.ONE, BigDecimal.TEN, UUID.randomUUID(), true,
-                0, 20, "transactionAt,desc"
-        );
-
-        ResponseStatusException ex = assertThrows(
-                ResponseStatusException.class,
-                () -> mapper.toListTransactionQuery(request)
-        );
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        assertTrue(ex.getReason().contains("transactionStatus inválido"));
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenTransactionTypeIsInvalid() {
-        ListTransactionRequest request = new ListTransactionRequest(
-                null, null, null, null,
-                "INVALID_TYPE", "INVALID_STATUS", "USD",
-                BigDecimal.ONE, BigDecimal.TEN, UUID.randomUUID(), true,
-                0, 20, "transactionAt,desc"
-        );
-
-        ResponseStatusException ex = assertThrows(
-                ResponseStatusException.class,
-                () -> mapper.toListTransactionQuery(request)
-        );
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        assertTrue(ex.getReason().contains("transactionType inválido"));
     }
 
     @Test
@@ -87,8 +63,37 @@ class TransactionQueryMapperTest {
         SummaryRequest request = new SummaryRequest(null, null, null, null, null);
 
         SummaryQuery result = mapper.toSummaryQuery(request);
+        verify(requestValidator).validate(null, null, null, null, null, null);
 
         assertEquals("type", result.groupBy());
+    }
+
+    @Test
+    void shouldMapSummaryQueryWithProvidedGroupBy() {
+        SummaryRequest request = new SummaryRequest(
+                LocalDate.of(2024, 1, 1),
+                LocalDate.of(2024, 1, 31),
+                LocalDate.of(2024, 2, 1),
+                LocalDate.of(2024, 2, 28),
+                "status"
+        );
+
+        SummaryQuery result = mapper.toSummaryQuery(request);
+
+        verify(requestValidator).validate(
+                request.txDateFrom(),
+                request.txDateTo(),
+                request.ingestionDateFrom(),
+                request.ingestionDateTo(),
+                null,
+                null
+        );
+
+        assertEquals("status", result.groupBy());
+        assertEquals(request.txDateFrom(), result.txDateFrom());
+        assertEquals(request.txDateTo(), result.txDateTo());
+        assertEquals(request.ingestionDateFrom(), result.ingestionDateFrom());
+        assertEquals(request.ingestionDateTo(), result.ingestionDateTo());
     }
 
     @Test
@@ -106,6 +111,10 @@ class TransactionQueryMapperTest {
 
         var result = mapper.toSearchTransactionByUserQuery(userId, request);
 
+        verify(requestValidator).validate(
+                txDateFrom, txDateTo, ingestionDateFrom, ingestionDateTo, null, null
+        );
+
         assertNotNull(result);
         assertEquals(String.valueOf(12345), result.userId());
         assertNotNull(result.filterCommon());
@@ -122,6 +131,8 @@ class TransactionQueryMapperTest {
         TransactionFilterRequest request = new TransactionFilterRequest(null, null, null, null, null, null, null);
 
         var result = mapper.toSearchTransactionByUserQuery(userId, request);
+
+        verify(requestValidator).validate(null, null, null, null, null, null);
 
         assertNotNull(result);
         assertEquals(String.valueOf(999), result.userId());
@@ -141,6 +152,8 @@ class TransactionQueryMapperTest {
 
         var result = mapper.toSearchTransactionByUserQuery(userId, request);
 
+        verify(requestValidator).validate(txDateFrom, null, null, null, null, null);
+
         assertNotNull(result);
         assertEquals(String.valueOf(777), result.userId());
         assertEquals(txDateFrom, result.filterCommon().txDateFrom());
@@ -148,8 +161,6 @@ class TransactionQueryMapperTest {
         assertEquals(2, result.filterCommon().page());
         assertEquals(25, result.filterCommon().size());
     }
-
-    // ==================== toSearchTransactionByCbuQuery Tests ====================
 
     @Test
     void toSearchTransactionByCbuQueryWithValidCbu() {
@@ -165,6 +176,10 @@ class TransactionQueryMapperTest {
         );
 
         var result = mapper.toSearchTransactionByCbuQuery(cbu, request);
+
+        verify(requestValidator).validate(
+                txDateFrom, txDateTo, ingestionDateFrom, ingestionDateTo, null, null
+        );
 
         assertNotNull(result);
         assertEquals(cbu, result.cbu());
@@ -185,6 +200,8 @@ class TransactionQueryMapperTest {
 
         var result = mapper.toSearchTransactionByCbuQuery(cbu, request);
 
+        verify(requestValidator).validate(null, null, null, null, null, null);
+
         assertNotNull(result);
         assertEquals(cbu, result.cbu());
         assertEquals(0, result.filterCommon().page());
@@ -203,6 +220,8 @@ class TransactionQueryMapperTest {
         );
 
         var result = mapper.toSearchTransactionByCbuQuery(cbu, request);
+
+        verify(requestValidator).validate(txDateFrom, txDateTo, null, null, null, null);
 
         assertNotNull(result);
         assertEquals(cbu, result.cbu());
@@ -235,7 +254,6 @@ class TransactionQueryMapperTest {
         assertEquals("transaction_At,desc", result.filterCommon().sort());
     }
 
-    // ==================== toSearchTransactionByCuitQuery Tests ====================
 
     @Test
     void toSearchTransactionByCuitQueryWithValidCuit() {

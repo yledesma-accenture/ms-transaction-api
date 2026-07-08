@@ -413,9 +413,16 @@ public class TransactionDatabaseAdapter implements ITransactionDatabasePort {
 
         QueryParts queryParts = baseQuery();
 
-        queryParts.sql.append(" WHERE t.created_by = ?");
-        queryParts.countSql.append(" WHERE t.created_by = ?");
+        queryParts.sql.append(" JOIN ingested_files f ON t.file_id = f.id");
+        queryParts.countSql.append(" JOIN ingested_files f ON t.file_id = f.id");
+
+        queryParts.sql.append(" WHERE (t.created_by = ? OR f.uploaded_by = ?)");
+        queryParts.countSql.append(" WHERE (t.created_by = ? OR f.uploaded_by = ?)");
+
         queryParts.params.add(query.userId());
+        queryParts.params.add(query.userId());
+
+        queryParts.countParams.add(query.userId());
         queryParts.countParams.add(query.userId());
 
         var filter = query.filterCommon();

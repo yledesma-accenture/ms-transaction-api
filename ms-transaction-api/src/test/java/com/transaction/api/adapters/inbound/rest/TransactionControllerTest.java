@@ -4,6 +4,7 @@ import com.transaction.api.adapters.inbound.dto.TransactionFilterRequest;
 import com.transaction.api.adapters.model.FilterCommon;
 import com.transaction.api.adapters.model.SearchTransactionByCbuQuery;
 import com.transaction.api.adapters.model.SearchTransactionByCuitQuery;
+import com.transaction.api.domain.exception.BadRequestException;
 import com.transaction.api.domain.model.Transaction;
 import com.transaction.api.domain.model.TransactionDetail;
 import com.transaction.api.domain.model.TransactionPage;
@@ -16,9 +17,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -37,7 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(TransactionController.class)
 class TransactionControllerTest {
-
 
     @Autowired
     private MockMvc mockMvc;
@@ -311,9 +309,7 @@ class TransactionControllerTest {
     @Test
     void shouldReturnBadRequestWhenStatusIsInvalid() throws Exception {
         when(mapper.toListTransactionQuery(any()))
-                .thenThrow(new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "transactionStatus inválido: INVALID_STATUS"));
+                .thenThrow(new BadRequestException("transactionStatus inválido: INVALID_STATUS"));
 
         mockMvc.perform(get("/api/v1/transactions")
                         .param("status", "INVALID_STATUS"))

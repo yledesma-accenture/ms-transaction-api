@@ -3,15 +3,20 @@ package com.transaction.api.adapters.inbound.rest;
 import com.transaction.api.adapters.inbound.dto.ListTransactionRequest;
 import com.transaction.api.adapters.inbound.dto.SummaryRequest;
 import com.transaction.api.adapters.inbound.dto.TransactionFilterRequest;
+import com.transaction.api.adapters.inbound.rest.validator.RequestValidator;
 import com.transaction.api.adapters.model.*;
 import com.transaction.api.domain.model.TransactionStatus;
 import com.transaction.api.domain.model.TransactionType;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class TransactionQueryMapper {
+    private final RequestValidator requestValidator;
+
+    public TransactionQueryMapper(RequestValidator requestValidator) {
+        this.requestValidator = requestValidator;
+    }
+
     public SearchTransactionByUserQuery toSearchTransactionByUserQuery(String userId, TransactionFilterRequest request) {
         return SearchTransactionByUserQuery.builder()
                 .userId(userId)
@@ -34,6 +39,7 @@ public class TransactionQueryMapper {
     }
 
     public ListTransactionsQuery toListTransactionQuery(ListTransactionRequest request){
+        requestValidator.validate(request.txDateFrom(), request.txDateTo(), request.ingestionDateFrom(), request.ingestionDateTo(), request.type(), request.status());
         TransactionFilterRequest filterCommon = new TransactionFilterRequest(
                 request.txDateFrom(),
                 request.txDateTo(),
@@ -45,8 +51,8 @@ public class TransactionQueryMapper {
         );
         return ListTransactionsQuery.builder()
                 .filterCommon(toTransactionFilterCommon(filterCommon))
-                .transactionType(mapTransactionType(request.type()))
-                .transactionStatus(mapTransactionStatus(request.status()))
+                .transactionType(request.type() != null ? TransactionType.valueOf(request.type()) : null)
+                .transactionStatus(request.status() != null ? TransactionStatus.valueOf(request.status()) : null)
                 .currency(request.currency())
                 .amountMin(request.amountMin())
                 .amountMax(request.amountMax())
@@ -56,6 +62,7 @@ public class TransactionQueryMapper {
     }
 
     public SummaryQuery toSummaryQuery(SummaryRequest request){
+        requestValidator.validate(request.txDateFrom(), request.txDateTo(), request.ingestionDateFrom(), request.ingestionDateTo(),null, null);
         return SummaryQuery.builder()
                 .txDateFrom(request.txDateFrom())
                 .txDateTo(request.txDateTo())
@@ -66,6 +73,7 @@ public class TransactionQueryMapper {
     }
 
     private FilterCommon toTransactionFilterCommon(TransactionFilterRequest request) {
+        requestValidator.validate(request.txDateFrom(), request.txDateTo(), request.ingestionDateFrom(), request.ingestionDateTo(),null, null);
         return FilterCommon.builder()
                 .txDateFrom(request.txDateFrom())
                 .txDateTo(request.txDateTo())
@@ -75,33 +83,5 @@ public class TransactionQueryMapper {
                 .size(request.size() != null ? request.size() : 20)
                 .sort(request.sort() != null ? request.sort() : "transaction_At,desc")
                 .build();
-    }
-
-    private TransactionStatus mapTransactionStatus(String status){
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        try {
-            return TransactionStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "transactionStatus inválido: " + status
-            );
-        }
-    }
-
-    private TransactionType mapTransactionType(String type) {
-        if (type == null || type.isBlank()) {
-            return null;
-        }
-        try {
-            return TransactionType.valueOf(type.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "transactionType inválido: " + type
-            );
-        }
     }
 }
