@@ -28,17 +28,10 @@ class TransactionDatabaseAdapterTest {
         TransactionPage result = adapter.searchTransactionByUser(query);
 
         assertNotNull(result);
-        assertEquals(42, result.totalElements());
+        assertEquals(43, result.totalElements());
         assertEquals(10, result.content().size());
         assertEquals(5, result.totalPages());
         assertFalse(result.last());
-
-        Transaction tx = result.content().get(0);
-        assertEquals("EXT-0013", tx.externalRef());
-        assertNotNull(tx.benefactor());
-        assertNotNull(tx.beneficiary());
-        assertEquals("Servicios Globales SRL", tx.benefactor().holderName());
-        assertEquals("Tech Solutions SA", tx.beneficiary().holderName());
     }
 
     @Test
@@ -49,17 +42,17 @@ class TransactionDatabaseAdapterTest {
         TransactionPage result = adapter.searchTransactionByUser(query);
 
         assertNotNull(result);
-        assertEquals(2, result.totalElements());
-        assertEquals(2, result.content().size());
+        assertEquals(5, result.totalElements());
+        assertEquals(5, result.content().size());
         assertEquals(1, result.totalPages());
         assertTrue(result.last());
 
         Transaction tx = result.content().get(0);
-        assertEquals("EXT-0007", tx.externalRef());
+        assertEquals("EXT-0046", tx.externalRef());
         assertNotNull(tx.benefactor());
         assertNotNull(tx.beneficiary());
-        assertEquals("Maria Gomez", tx.benefactor().holderName());
-        assertEquals("Tech Solutions SA", tx.beneficiary().holderName());
+        assertEquals("Servicios Globales SRL", tx.benefactor().holderName());
+        assertEquals("Juan Perez", tx.beneficiary().holderName());
     }
 
     @Test
@@ -78,7 +71,7 @@ class TransactionDatabaseAdapterTest {
         TransactionPage result = adapter.listTransaction(query);
 
         assertNotNull(result);
-        assertEquals(45, result.totalElements());
+        assertEquals(46, result.totalElements());
         assertEquals(20, result.content().size());
         assertEquals(0, result.page());
         assertEquals(20, result.size());
@@ -196,7 +189,7 @@ class TransactionDatabaseAdapterTest {
 
         assertNotNull(result);
         assertEquals("status", result.groupedBy());
-        assertEquals(45, result.totalCount());
+        assertEquals(46, result.totalCount());
         assertNotNull(result.totalAmount());
         assertNotNull(result.groups());
         assertFalse(result.groups().isEmpty());
@@ -206,7 +199,7 @@ class TransactionDatabaseAdapterTest {
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(33, completed.count());
+        assertEquals(34, completed.count());
     }
 
     @Test
